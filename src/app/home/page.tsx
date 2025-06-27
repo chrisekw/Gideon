@@ -38,6 +38,12 @@ type Source = {
   link: string;
 };
 
+type HomeworkSolution = {
+  question: string;
+  solution: string;
+  diagramUrl?: string | null;
+};
+
 export default function HomePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string | null>(null);
@@ -46,6 +52,8 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [sources, setSources] = useState<Source[] | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [homeworkSolutions, setHomeworkSolutions] = useState<HomeworkSolution[] | null>(null);
+  const [preamble, setPreamble] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [answerTitle, setAnswerTitle] = useState('');
@@ -58,6 +66,8 @@ export default function HomePage() {
     setProducts(null);
     setSources(null);
     setImageUrl(null);
+    setHomeworkSolutions(null);
+    setPreamble('');
   }
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
@@ -122,8 +132,8 @@ export default function HomePage() {
     setAnswerIcon(<Calculator className="h-5 w-5 text-primary" />);
     try {
       const result = await solveHomework({ photoDataUri: data });
-      setAiResponse(result.solution);
-      setImageUrl(result.diagramUrl || null);
+      setHomeworkSolutions(result.solutions);
+      setPreamble(result.preamble || '');
     } catch (error) {
       console.error('AI call failed:', error);
       toast({ variant: 'destructive', title: 'An error occurred', description: 'Failed to solve. Please try again.'});
@@ -195,7 +205,6 @@ export default function HomePage() {
         const result = reader.result as string;
         setImagePreview(result);
         setImageData(result);
-        setProducts(null);
         handleAnalysis(result, '');
       };
       reader.readAsDataURL(file);
@@ -210,11 +219,8 @@ export default function HomePage() {
   const resetState = () => {
     setImagePreview(null);
     setImageData(null);
-    setAiResponse('');
+    resetAiState();
     setQuestion('');
-    setProducts(null);
-    setSources(null);
-    setImageUrl(null);
     setCurrentAction(null);
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -269,7 +275,17 @@ export default function HomePage() {
               </Button>
           </div>
           
-          <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} imageUrl={imageUrl} />
+          <AnswerBox 
+            isLoading={isAnalyzing} 
+            title={answerTitle} 
+            icon={answerIcon} 
+            response={aiResponse} 
+            products={products} 
+            sources={sources} 
+            imageUrl={imageUrl}
+            homeworkSolutions={homeworkSolutions}
+            preamble={preamble}
+          />
 
           <div className="space-y-2">
             <div className="flex gap-2">

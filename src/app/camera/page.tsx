@@ -29,6 +29,12 @@ type Source = {
   link: string;
 };
 
+type HomeworkSolution = {
+  question: string;
+  solution: string;
+  diagramUrl?: string | null;
+};
+
 export default function CameraPage() {
   const [imageData, setImageData] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
@@ -36,6 +42,8 @@ export default function CameraPage() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [sources, setSources] = useState<Source[] | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [homeworkSolutions, setHomeworkSolutions] = useState<HomeworkSolution[] | null>(null);
+  const [preamble, setPreamble] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -52,6 +60,8 @@ export default function CameraPage() {
     setProducts(null);
     setSources(null);
     setImageUrl(null);
+    setHomeworkSolutions(null);
+    setPreamble('');
   }
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
@@ -116,8 +126,8 @@ export default function CameraPage() {
     setAnswerIcon(<Calculator className="h-5 w-5 text-primary" />);
     try {
       const result = await solveHomework({ photoDataUri: data });
-      setAiResponse(result.solution);
-      setImageUrl(result.diagramUrl || null);
+      setHomeworkSolutions(result.solutions);
+      setPreamble(result.preamble || '');
     } catch (error) {
       console.error('AI call failed:', error);
       toast({ variant: 'destructive', title: 'An error occurred', description: 'Failed to solve. Please try again.'});
@@ -214,7 +224,6 @@ export default function CameraPage() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg');
         setImageData(dataUrl);
-        setProducts(null);
         handleAnalysis(dataUrl, '');
       }
     }
@@ -227,12 +236,9 @@ export default function CameraPage() {
 
   const resetCapture = () => {
     setImageData(null);
-    setAiResponse('');
+    resetAiState();
     setQuestion('');
-    setProducts(null);
     setCurrentAction(null);
-    setSources(null);
-    setImageUrl(null);
   };
 
   const ActionButton = ({ onClick, action, icon, children }: { onClick: () => void, action: string, icon: React.ReactNode, children: React.ReactNode }) => (
@@ -277,7 +283,19 @@ export default function CameraPage() {
 
       <footer className="absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 bg-gradient-to-t from-black/70 to-transparent">
         <div className="max-w-4xl mx-auto space-y-4">
-          {imageData && <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} imageUrl={imageUrl} />}
+          {imageData && (
+            <AnswerBox 
+              isLoading={isAnalyzing} 
+              title={answerTitle} 
+              icon={answerIcon} 
+              response={aiResponse} 
+              products={products} 
+              sources={sources} 
+              imageUrl={imageUrl}
+              homeworkSolutions={homeworkSolutions}
+              preamble={preamble}
+            />
+          )}
           
           <div className="flex items-center justify-center gap-4">
             {!imageData ? (

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Volume2, Loader2 } from "lucide-react";
+import { Sparkles, Volume2, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,12 @@ type Source = {
   link: string;
 };
 
+type HomeworkSolutionType = {
+  question: string;
+  solution: string;
+  diagramUrl?: string | null;
+};
+
 type AnswerBoxProps = {
   isLoading: boolean;
   title: string;
@@ -32,20 +38,34 @@ type AnswerBoxProps = {
   products?: Product[] | null;
   sources?: Source[] | null;
   imageUrl?: string | null;
+  homeworkSolutions?: HomeworkSolutionType[] | null;
+  preamble?: string | null;
 };
 
-export default function AnswerBox({ isLoading, title, icon, response, products, sources, imageUrl }: AnswerBoxProps) {
+export default function AnswerBox({ isLoading, title, icon, response, products, sources, imageUrl, homeworkSolutions, preamble }: AnswerBoxProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentSolutionIndex, setCurrentSolutionIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentSolutionIndex(0);
+  }, [homeworkSolutions]);
 
   const handleSpeak = async () => {
-    if (!response) return;
+    let textToSpeak = response;
+    
+    if (homeworkSolutions && homeworkSolutions.length > 0) {
+      const currentSolution = homeworkSolutions[currentSolutionIndex];
+      textToSpeak = `${preamble || ''}\n\nQuestion: ${currentSolution.question}\n\n${currentSolution.solution}`;
+    }
+
+    if (!textToSpeak) return;
     setIsSpeaking(true);
     setAudioDataUri(null);
     try {
-      const result = await textToSpeech(response);
+      const result = await textToSpeech(textToSpeak);
       setAudioDataUri(result.audioDataUri);
     } catch (error) {
       console.error("TTS call failed:", error);
@@ -67,9 +87,9 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
 
   useEffect(() => {
     setAudioDataUri(null);
-  }, [response]);
+  }, [response, currentSolutionIndex, homeworkSolutions]);
   
-  const showSkeleton = isLoading && !response && !imageUrl && (!products || products.length === 0) && (!sources || sources.length === 0);
+  const showSkeleton = isLoading && !response && !imageUrl && (!products || products.length === 0) && (!sources || sources.length === 0) && (!homeworkSolutions || homeworkSolutions.length === 0);
 
   if (showSkeleton) {
      return (
@@ -89,9 +109,9 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
         </Card>
      )
   }
-
-  const isHomeworkSolution = title === 'Homework Solution' && response;
-  const hasContent = response || imageUrl || (products && products.length > 0) || (sources && sources.length > 0);
+  
+  const isHomework = title === 'Homework Solution' && homeworkSolutions && homeworkSolutions.length > 0;
+  const hasContent = response || imageUrl || (products && products.length > 0) || (sources && sources.length > 0) || isHomework;
   
   if (!hasContent) {
     return null;
@@ -105,7 +125,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             {icon}
             {title}
             </CardTitle>
-            {response && !isLoading && (
+            {(response || isHomework) && !isLoading && (
                 <Button onClick={handleSpeak} variant="ghost" size="icon" disabled={isSpeaking} className="shrink-0">
                     {isSpeaking ? <Loader2 className="h-5 w-5 animate-spin" /> : <Volume2 className="h-5 w-5" />}
                     <span className="sr-only">Speak</span>
@@ -113,9 +133,26 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             )}
         </div>
       </CardHeader>
-      <CardContent>
-        {isHomeworkSolution ? (
-          <HomeworkSolution solution={response} diagramUrl={imageUrl} />
+      <CardContent className={cn(isHomework && "overflow-y-auto max-h-[60vh]")}>
+        {isHomework ? (
+          <div className="space-y-4">
+            {preamble && <p className="text-sm text-muted-foreground italic">"{preamble}"</p>}
+            
+            {homeworkSolutions.length > 1 && (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-secondary">
+                <Button variant="ghost" size="icon" onClick={() => setCurrentSolutionIndex(prev => prev - 1)} disabled={currentSolutionIndex === 0}>
+                  <ArrowLeft />
+                </Button>
+                <div className="text-sm font-medium">
+                  Question {currentSolutionIndex + 1} of {homeworkSolutions.length}
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setCurrentSolutionIndex(prev => prev + 1)} disabled={currentSolutionIndex === homeworkSolutions.length - 1}>
+                  <ArrowRight />
+                </Button>
+              </div>
+            )}
+            <HomeworkSolution solution={homeworkSolutions[currentSolutionIndex]} />
+          </div>
         ) : (
           <>
             {imageUrl && (

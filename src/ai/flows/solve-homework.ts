@@ -19,17 +19,27 @@ const SolveHomeworkInputSchema = z.object({
 });
 export type SolveHomeworkInput = z.infer<typeof SolveHomeworkInputSchema>;
 
+const HomeworkSolutionItemSchema = z.object({
+    question: z.string().describe("The specific question identified from the image."),
+    solution: z.string().describe("A step-by-step solution to the problem. Each step MUST be on a new line."),
+    diagramPrompt: z.string().optional().describe('If a diagram is essential to explain the solution, provide a detailed, descriptive prompt for an AI image generator to create it. For example: "A free-body diagram of a block on an inclined plane." The diagram should be simple, clean, and educational.'),
+});
+
 const SolveHomeworkOutputSchema = z.object({
-  solution: z.string().describe('A step-by-step solution to the problem, including explanations for each step.'),
-  diagramUrl: z.string().optional().describe('A URL (data URI) for a generated diagram that helps explain the solution.'),
+    preamble: z.string().describe("Start with a friendly, encouraging preamble as if you're a brilliant and helpful student. For example: 'Hey! I looked at your homework, and it looks fun! Let's break it down.'"),
+    solutions: z.array(z.object({
+        question: z.string(),
+        solution: z.string(),
+        diagramUrl: z.string().optional(),
+    })).describe('An array of solutions, one for each question found in the image.'),
 });
 export type SolveHomeworkOutput = z.infer<typeof SolveHomeworkOutputSchema>;
 
-// Intermediate schema for the text-generation part of the flow
 const SolutionTextSchema = z.object({
-    solution: z.string().describe('A step-by-step solution to the problem, including explanations for each step.'),
-    diagramPrompt: z.string().optional().describe('If a diagram is needed, a detailed prompt for an image generation model to create it. For example: "A free-body diagram of a block on an inclined plane."'),
+    preamble: z.string().describe("Start with a friendly, encouraging preamble as if you're a brilliant and helpful student. For example: 'Hey! I looked at your homework, and it looks fun! Let's break it down.'"),
+    solutions: z.array(HomeworkSolutionItemSchema).describe('An array of solutions, one for each question found in the image.'),
 });
+
 
 export async function solveHomework(input: SolveHomeworkInput): Promise<SolveHomeworkOutput> {
   return solveHomeworkFlow(input);
@@ -39,14 +49,16 @@ const solutionPrompt = ai.definePrompt({
   name: 'solveHomeworkTextPrompt',
   input: {schema: SolveHomeworkInputSchema},
   output: {schema: SolutionTextSchema},
-  prompt: `You are an expert tutor specializing in math and science. Your task is to solve the homework problem in the image.
+  prompt: `You are an expert tutor, but you have the persona of a brilliant, enthusiastic, and friendly student who loves to help others. Your task is to solve all the math and science problems in the image.
 
-**Process:**
-1.  Analyze the image and understand the problem.
-2.  Formulate a clear, step-by-step solution. Explain the logic for each step simply, as if you were teaching a student.
-3.  Determine if a diagram would significantly help in understanding the solution (e.g., free-body diagrams, geometric shapes, graphs).
-4.  If a diagram is helpful, create a concise but descriptive prompt for an AI image generator to create that diagram. The prompt should describe a clean, simple, educational diagram. For example: "A simple right-angled triangle with sides labeled a, b, and hypotenuse c." or "A free-body diagram showing the forces of gravity, normal force, and friction on a block sliding down an inclined plane."
-5.  If no diagram is needed, leave the \`diagramPrompt\` field empty.
+**Your Process:**
+1.  **Friendly Greeting**: Start with a fun, encouraging preamble.
+2.  **Identify All Questions**: Carefully scan the image and identify every distinct question.
+3.  **Solve Step-by-Step**: For each question, provide a clear, step-by-step solution. Explain your thinking for each step in a simple, easy-to-follow way.
+4.  **Diagrams are Key**: For each solution, decide if a diagram would make it easier to understand (e.g., geometric shapes, graphs, free-body diagrams). If so, create a concise but descriptive prompt for an AI image generator. The prompt should result in a clean, simple, educational diagram.
+5.  **Format Correctly**: Structure your entire response according to the output schema. Make sure each step in the \`solution\` field is on a new line.
+
+Let's make learning awesome!
 
 Image: {{media url=photoDataUri}}`,
 });
@@ -59,36 +71,40 @@ const solveHomeworkFlow = ai.defineFlow(
   },
   async (input) => {
     // Step 1: Get the text solution and a potential prompt for a diagram
-    const { output: solutionResult } = await solutionPrompt(input);
-    if (!solutionResult) {
+    const { output: structuredResult } = await solutionPrompt(input);
+    if (!structuredResult || !structuredResult.solutions) {
       throw new Error('Failed to generate a solution.');
     }
 
-    let diagramUrl: string | undefined = undefined;
-
-    // Step 2: If a diagram prompt was generated, create the diagram
-    if (solutionResult.diagramPrompt) {
-      try {
-        const { media } = await ai.generate({
-          model: 'googleai/gemini-2.0-flash-preview-image-generation',
-          prompt: `Create a clear, simple, educational diagram for a student. Style: minimalist, black and white, clean lines. Diagram topic: ${solutionResult.diagramPrompt}`,
-          config: {
-            responseModalities: ['TEXT', 'IMAGE'],
-          },
-        });
-        if (media?.url) {
-          diagramUrl = media.url;
+    // Step 2: Generate diagrams for each solution that needs one, in parallel
+    const solutionsWithDiagrams = await Promise.all(
+      structuredResult.solutions.map(async (solution) => {
+        if (!solution.diagramPrompt) {
+          return { ...solution, diagramUrl: undefined };
         }
-      } catch (e) {
-        console.error("Diagram generation failed:", e);
-        // Continue without a diagram if generation fails
-      }
-    }
+        try {
+          const { media } = await ai.generate({
+            model: 'googleai/gemini-2.0-flash-preview-image-generation',
+            prompt: `Create a clear, simple, educational diagram for a student. Style: minimalist, black and white, clean lines. Diagram topic: ${solution.diagramPrompt}`,
+            config: {
+              responseModalities: ['TEXT', 'IMAGE'],
+            },
+          });
+          // Return solution with the new diagram URL
+          return { ...solution, diagramUrl: media?.url };
+        } catch (e) {
+          console.error("Diagram generation failed:", e);
+          // Return solution without a diagram if generation fails
+          return { ...solution, diagramUrl: undefined };
+        }
+      })
+    );
 
-    // Step 3: Combine the solution text with the generated diagram URL
+    // Step 3: Combine the preamble with the solutions (which now have diagram URLs)
     return {
-      solution: solutionResult.solution,
-      diagramUrl: diagramUrl,
+      preamble: structuredResult.preamble,
+      // Remove the temporary diagramPrompt field from the final output
+      solutions: solutionsWithDiagrams.map(({ diagramPrompt, ...rest }) => rest),
     };
   }
 );
