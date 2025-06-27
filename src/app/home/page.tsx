@@ -9,21 +9,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import { Camera, Loader2, Sparkles, Upload, X } from 'lucide-react';
+import { findProducts } from '@/ai/flows/find-products';
+import { Camera, Loader2, Sparkles, Upload, X, ShoppingBag } from 'lucide-react';
 import AnswerBox from '@/components/gideon/answer-box';
+
+type Product = {
+  name: string;
+  description: string;
+  link: string;
+};
 
 export default function HomePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [aiResponse, setAiResponse] = useState<string>('');
+  const [products, setProducts] = useState<Product[] | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentAction, setCurrentAction] = useState<'ask' | 'find' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
     setIsAnalyzing(true);
+    setCurrentAction('ask');
     setAiResponse('');
+    setProducts(null);
     try {
       if (userQuestion.trim()) {
         const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
@@ -41,6 +52,33 @@ export default function HomePage() {
       });
     } finally {
       setIsAnalyzing(false);
+      setCurrentAction(null);
+    }
+  }, [toast]);
+  
+  const handleFindProducts = useCallback(async (data: string) => {
+    setIsAnalyzing(true);
+    setCurrentAction('find');
+    setAiResponse('');
+    setProducts(null);
+    try {
+      const result = await findProducts({ photoDataUri: data });
+      if (result.products && result.products.length > 0) {
+        setProducts(result.products);
+        setAiResponse(`I found ${result.products.length} product(s) in the image.`);
+      } else {
+        setAiResponse("I couldn't find any products in the image.");
+      }
+    } catch (error) {
+      console.error('AI call failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'An error occurred',
+        description: 'Failed to find products. Please try again.',
+      });
+    } finally {
+      setIsAnalyzing(false);
+      setCurrentAction(null);
     }
   }, [toast]);
 
@@ -60,6 +98,7 @@ export default function HomePage() {
         const result = reader.result as string;
         setImagePreview(result);
         setImageData(result);
+        setProducts(null);
         handleAnalysis(result, '');
       };
       reader.readAsDataURL(file);
@@ -76,6 +115,8 @@ export default function HomePage() {
     setImageData(null);
     setAiResponse('');
     setQuestion('');
+    setProducts(null);
+    setCurrentAction(null);
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
     }
@@ -86,7 +127,7 @@ export default function HomePage() {
       {!imagePreview ? (
         <div className="flex flex-col items-center justify-center text-center gap-8 flex-1">
           <div className="text-center">
-            <h2 className='text-5xl font-bold tracking-tighter text-primary'>GIDEON</h2>
+            <h2 className='text-5xl font-bold tracking-tighter'>GIDEON</h2>
             <p className='text-muted-foreground text-xl mt-2'>Snap. Ask. Discover.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -123,7 +164,7 @@ export default function HomePage() {
               </Button>
           </div>
           
-          <AnswerBox isLoading={isAnalyzing} response={aiResponse} />
+          <AnswerBox isLoading={isAnalyzing} response={aiResponse} products={products} />
 
           <div className="flex gap-4">
             <Textarea
@@ -134,14 +175,25 @@ export default function HomePage() {
               rows={2}
               disabled={isAnalyzing}
             />
-            <Button 
-              onClick={handleAskQuestion} 
-              disabled={isAnalyzing || !question.trim()}
-              className="h-auto"
-            >
-              {isAnalyzing && !aiResponse ? <Loader2 className="animate-spin" /> : <Sparkles />}
-              <span className="hidden sm:inline ml-2">Ask</span>
-            </Button>
+            <div className='flex flex-col gap-2'>
+              <Button 
+                onClick={handleAskQuestion} 
+                disabled={isAnalyzing || !question.trim()}
+                className="h-auto"
+              >
+                {isAnalyzing && currentAction === 'ask' ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                <span className="hidden sm:inline ml-2">Ask</span>
+              </Button>
+               <Button 
+                  onClick={() => imageData && handleFindProducts(imageData)} 
+                  disabled={isAnalyzing || !imageData}
+                  variant="secondary"
+                  className="h-auto"
+              >
+                  {isAnalyzing && currentAction === 'find' ? <Loader2 className="animate-spin" /> : <ShoppingBag />}
+                  <span className="hidden sm:inline ml-2">Shop</span>
+              </Button>
+            </div>
           </div>
         </div>
       )}
