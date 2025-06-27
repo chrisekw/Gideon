@@ -101,7 +101,7 @@ export default function CameraPage() {
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center">
       <header className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/50 to-transparent">
-        <Link href="/" passHref>
+        <Link href="/home" passHref>
           <Button variant="ghost" size="icon">
             <ArrowLeft />
           </Button>
