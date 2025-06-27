@@ -1,30 +1,52 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import { Camera, Loader2, Sparkles, Upload } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Camera, Loader2, Sparkles, Upload, X } from 'lucide-react';
+import AnswerBox from '@/components/gideon/answer-box';
 
 export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [aiResponse, setAiResponse] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
+    setIsAnalyzing(true);
+    setAiResponse('');
+    try {
+      if (userQuestion.trim()) {
+        const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
+        setAiResponse(result.answer);
+      } else {
+        const result = await generateImageDescription({ photoDataUri: data });
+        setAiResponse(result.description);
+      }
+    } catch (error) {
+      console.error('AI call failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'An error occurred',
+        description: 'Failed to get a response from the AI. Please try again.',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [toast]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 4 * 1024 * 1024) { // 4MB limit for Gemini
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
         toast({
           variant: 'destructive',
           title: 'Image too large',
@@ -37,51 +59,17 @@ export default function Home() {
         const result = reader.result as string;
         setImagePreview(result);
         setImageData(result);
-        setAiResponse('');
-        setQuestion('');
+        handleAnalysis(result, '');
       };
       reader.readAsDataURL(file);
     }
   };
-
-  const handleAskAi = async () => {
-    if (!imageData) {
-      toast({
-        variant: 'destructive',
-        title: 'No Image Selected',
-        description: 'Please select an image before asking the AI.',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setAiResponse('');
-
-    try {
-      if (question.trim()) {
-        const result = await analyzeImage({
-          photoDataUri: imageData,
-          question,
-        });
-        setAiResponse(result.answer);
-      } else {
-        const result = await generateImageDescription({
-          photoDataUri: imageData,
-        });
-        setAiResponse(result.description);
-      }
-    } catch (error) {
-      console.error('AI call failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'An error occurred',
-        description: 'Failed to get a response from the AI. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  
+  const handleAskQuestion = () => {
+    if (!imageData || !question.trim()) return;
+    handleAnalysis(imageData, question);
   };
-
+  
   const resetState = () => {
     setImagePreview(null);
     setImageData(null);
@@ -94,126 +82,76 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-            <h1 className="text-2xl font-bold tracking-tight">Gideon Eye</h1>
-            <p className="text-sm text-muted-foreground">Your intelligent image analysis assistant.</p>
+            <h1 className="text-2xl font-bold tracking-tight">Gideon</h1>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto p-4 md:p-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="flex flex-col gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>1. Provide an Image</CardTitle>
-                <CardDescription>Upload an image or use your camera.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div 
-                  className="aspect-video rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {imagePreview ? (
-                    <Image src={imagePreview} alt="Selected preview" width={400} height={225} className="object-contain w-full h-full rounded-md" />
-                  ) : (
-                    <div className="text-center text-muted-foreground p-4">
-                      <Upload className="mx-auto h-12 w-12 mb-2" />
-                      <p className="font-semibold">Click to upload an image</p>
-                      <p className="text-xs mt-1">(Max 4MB)</p>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or
-                    </span>
-                  </div>
-                </div>
-
-                <Link href="/camera" className='w-full'>
-                    <Button variant="secondary" className="w-full">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Use Camera
-                    </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>2. Ask a Question</CardTitle>
-                    <CardDescription>Optionally, ask something specific about the uploaded image.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Textarea
-                        placeholder="e.g., What color is the car? Is this plant healthy?"
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        className="resize-none"
-                        rows={3}
-                        disabled={!imageData || isLoading}
-                    />
-                </CardContent>
-            </Card>
-
-            <div className="flex gap-4">
-              <Button onClick={handleAskAi} disabled={isLoading || !imageData} className="w-full">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {question.trim() ? 'Ask AI' : 'Describe Image'}
-                  </>
-                )}
-              </Button>
-              {imagePreview && (
-                <Button variant="outline" onClick={resetState} disabled={isLoading}>
-                  Reset
+      <main className="flex-1 container mx-auto p-4 md:p-8 flex flex-col items-center">
+        <div className="w-full max-w-4xl">
+          {!imagePreview ? (
+            <div className="flex flex-col items-center justify-center text-center gap-8 py-16">
+              <div className='space-y-2'>
+                <h2 className='text-4xl font-bold'>Intelligent Analysis Starts Here</h2>
+                <p className='text-muted-foreground text-lg'>Upload an image or use your camera to begin.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="mr-2" />
+                  Upload Image
                 </Button>
-              )}
+                <Link href="/camera" passHref>
+                  <Button size="lg" variant="secondary">
+                    <Camera className="mr-2" />
+                    Use Camera
+                  </Button>
+                </Link>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="hidden"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="relative w-full space-y-4">
+              <div className="relative group aspect-video w-full rounded-xl overflow-hidden border">
+                <Image src={imagePreview} alt="Selected preview" layout="fill" className="object-contain" />
+                <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={resetState}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+              </div>
+              
+              <AnswerBox isLoading={isAnalyzing} response={aiResponse} />
 
-          <div className="flex flex-col gap-4">
-            <Card className="flex-1 flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  AI Response
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1">
-                {isLoading ? (
-                  <div className="space-y-3 p-1">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </div>
-                ) : (
-                  <p className="whitespace-pre-wrap text-muted-foreground">
-                    {aiResponse || 'The AI\'s response will appear here.'}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              <div className="flex gap-4">
+                <Textarea
+                  placeholder="Ask a follow-up question..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  className="resize-none text-base"
+                  rows={2}
+                  disabled={isAnalyzing}
+                />
+                <Button 
+                  onClick={handleAskQuestion} 
+                  disabled={isAnalyzing || !question.trim()}
+                  className="h-auto"
+                >
+                  {isAnalyzing && !aiResponse ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                  <span className="hidden sm:inline ml-2">Ask</span>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
