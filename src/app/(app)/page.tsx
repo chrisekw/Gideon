@@ -1,2 +1,2 @@
-// This file is intentionally blank to resolve a routing conflict.
-// The root page redirect is handled by /src/app/page.tsx.
+// This file is a remnant of a previous file structure and is intentionally left blank to prevent routing conflicts.
+// The active page is located at /src/app/page.tsx.

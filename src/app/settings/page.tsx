@@ -9,7 +9,7 @@ export default function SettingsPage() {
                 <CardTitle>Settings</CardTitle>
                 <CardDescription>
                     Manage your application settings and preferences.
-                </CardDescription>
+                </Description>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">

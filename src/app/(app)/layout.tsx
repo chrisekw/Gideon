@@ -1,7 +1,2 @@
-// This file is now redundant and has been made inert.
-// The layout logic has been moved to /src/app/layout.tsx.
-import React from 'react';
-
-export default function AppLayout({children}: {children: React.ReactNode}) {
-  return <>{children}</>;
-}
+// This file is a remnant of a previous file structure and is intentionally left blank to prevent routing conflicts.
+// The active layout is located at /src/app/layout.tsx.

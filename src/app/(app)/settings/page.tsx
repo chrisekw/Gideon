@@ -1,2 +1,2 @@
-// This file is now redundant and has been made inert.
-// The settings page is now located at /src/app/settings/page.tsx.
+// This file is a remnant of a previous file structure and is intentionally left blank to prevent routing conflicts.
+// The active page is located at /src/app/settings/page.tsx.
