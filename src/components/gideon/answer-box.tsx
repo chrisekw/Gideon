@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, ShoppingBag } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Product = {
@@ -12,11 +12,13 @@ type Product = {
 
 type AnswerBoxProps = {
   isLoading: boolean;
+  title: string;
+  icon: React.ReactNode;
   response: string;
   products?: Product[] | null;
 };
 
-export default function AnswerBox({ isLoading, response, products }: AnswerBoxProps) {
+export default function AnswerBox({ isLoading, title, icon, response, products }: AnswerBoxProps) {
   const showSkeleton = isLoading && !response && (!products || products.length === 0);
 
   if (showSkeleton) {
@@ -47,8 +49,8 @@ export default function AnswerBox({ isLoading, response, products }: AnswerBoxPr
     <Card className="animate-in fade-in duration-500">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-           {products && products.length > 0 ? <ShoppingBag className="h-5 w-5 text-primary" /> : <Sparkles className="h-5 w-5 text-primary" />}
-           {products && products.length > 0 ? "Products Found" : "AI Analysis"}
+           {icon}
+           {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
