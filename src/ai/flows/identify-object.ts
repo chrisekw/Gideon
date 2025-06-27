@@ -28,6 +28,7 @@ const IdentifyObjectOutputSchema = z.object({
     title: z.string().describe('The title of the source website (e.g., "Wikipedia").'),
     link: z.string().describe('A relevant URL for more information (e.g., a Wikipedia page or Google Maps link).'),
   })).optional().describe("A list of relevant links for more information."),
+  generatedImageUrl: z.string().optional().describe('A generated image URL (data URI) that is visually similar to the identified object.'),
 });
 export type IdentifyObjectOutput = z.infer<typeof IdentifyObjectOutputSchema>;
 
@@ -36,10 +37,10 @@ export async function identifyObject(input: IdentifyObjectInput): Promise<Identi
   return identifyObjectFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const identificationPrompt = ai.definePrompt({
   name: 'identifyObjectPrompt',
   input: {schema: IdentifyObjectInputSchema},
-  output: {schema: IdentifyObjectOutputSchema},
+  output: {schema: IdentifyObjectOutputSchema.omit({ generatedImageUrl: true })},
   prompt: `You are a world-class AI identification expert. Your task is to analyze an image and identify its contents by following a structured process.
 
 **Your Process:**
@@ -66,8 +67,39 @@ const identifyObjectFlow = ai.defineFlow(
     inputSchema: IdentifyObjectInputSchema,
     outputSchema: IdentifyObjectOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // Step 1: Get text-based identification from the first model
+    const { output: identificationResult } = await identificationPrompt(input);
+    if (!identificationResult) {
+      throw new Error('Failed to identify the object.');
+    }
+
+    let generatedImageUrl: string | undefined = undefined;
+
+    // Step 2: Generate a visually similar image if identification was successful
+    if (identificationResult.identification) {
+      try {
+        const { media } = await ai.generate({
+          model: 'googleai/gemini-2.0-flash-preview-image-generation',
+          prompt: `A high-quality, clear, photorealistic image of a single "${identificationResult.identification}". The object should be centered against a plain, neutral background.`,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        });
+        if (media?.url) {
+          generatedImageUrl = media.url;
+        }
+      } catch (e) {
+        console.error("Image generation failed:", e);
+        // Do not block the response if image generation fails.
+        // The user will still get the text-based identification.
+      }
+    }
+
+    // Step 3: Combine text identification with the generated image URL
+    return {
+      ...identificationResult,
+      generatedImageUrl,
+    };
   }
 );

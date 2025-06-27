@@ -45,6 +45,7 @@ export default function HomePage() {
   const [aiResponse, setAiResponse] = useState<string>('');
   const [products, setProducts] = useState<Product[] | null>(null);
   const [sources, setSources] = useState<Source[] | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [answerTitle, setAnswerTitle] = useState('');
@@ -56,6 +57,7 @@ export default function HomePage() {
     setAiResponse('');
     setProducts(null);
     setSources(null);
+    setGeneratedImageUrl(null);
   }
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
@@ -144,6 +146,7 @@ export default function HomePage() {
       }
       setAiResponse(responseText);
       setSources(result.sources || null);
+      setGeneratedImageUrl(result.generatedImageUrl || null);
     } catch (error) {
       console.error('AI call failed:', error);
       toast({ variant: 'destructive', title: 'An error occurred', description: 'Failed to identify. Please try again.'});
@@ -210,6 +213,7 @@ export default function HomePage() {
     setQuestion('');
     setProducts(null);
     setSources(null);
+    setGeneratedImageUrl(null);
     setCurrentAction(null);
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -264,7 +268,7 @@ export default function HomePage() {
               </Button>
           </div>
           
-          <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} />
+          <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} generatedImageUrl={generatedImageUrl} />
 
           <div className="space-y-2">
             <div className="flex gap-2">

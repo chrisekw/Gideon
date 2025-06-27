@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Volume2, Loader2 } from "lucide-react";
@@ -29,9 +30,10 @@ type AnswerBoxProps = {
   response: string;
   products?: Product[] | null;
   sources?: Source[] | null;
+  generatedImageUrl?: string | null;
 };
 
-export default function AnswerBox({ isLoading, title, icon, response, products, sources }: AnswerBoxProps) {
+export default function AnswerBox({ isLoading, title, icon, response, products, sources, generatedImageUrl }: AnswerBoxProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
     setAudioDataUri(null);
   }, [response]);
   
-  const showSkeleton = isLoading && !response && (!products || products.length === 0) && (!sources || sources.length === 0);
+  const showSkeleton = isLoading && !response && !generatedImageUrl && (!products || products.length === 0) && (!sources || sources.length === 0);
 
   if (showSkeleton) {
      return (
@@ -87,7 +89,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
      )
   }
 
-  const hasContent = response || (products && products.length > 0) || (sources && sources.length > 0);
+  const hasContent = response || generatedImageUrl || (products && products.length > 0) || (sources && sources.length > 0);
   if (!hasContent) {
     return null;
   }
@@ -109,13 +111,18 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
         </div>
       </CardHeader>
       <CardContent>
+        {generatedImageUrl && (
+          <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden border">
+            <Image src={generatedImageUrl} alt="AI generated image of the identified object" fill className="object-contain" />
+          </div>
+        )}
         {response && (
             <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                 {response}
             </div>
         )}
         {products && products.length > 0 && (
-            <div className={cn("space-y-3", response && "mt-4")}>
+            <div className={cn("space-y-3", (response || generatedImageUrl) && "mt-4")}>
                 {products.map((product, index) => (
                     <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
                         <div className="flex justify-between items-start gap-4">
@@ -130,7 +137,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             </div>
         )}
         {sources && sources.length > 0 && (
-            <div className={cn("space-y-3", (response || (products && products.length > 0)) && "mt-4")}>
+            <div className={cn("space-y-3", (response || generatedImageUrl || (products && products.length > 0)) && "mt-4")}>
                 <h4 className="font-semibold text-base">Sources</h4>
                 <div className="space-y-2">
                     {sources.map((source, index) => (

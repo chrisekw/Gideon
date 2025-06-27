@@ -35,6 +35,7 @@ export default function CameraPage() {
   const [aiResponse, setAiResponse] = useState<string>('');
   const [products, setProducts] = useState<Product[] | null>(null);
   const [sources, setSources] = useState<Source[] | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -50,6 +51,7 @@ export default function CameraPage() {
     setAiResponse('');
     setProducts(null);
     setSources(null);
+    setGeneratedImageUrl(null);
   }
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
@@ -138,6 +140,7 @@ export default function CameraPage() {
       }
       setAiResponse(responseText);
       setSources(result.sources || null);
+      setGeneratedImageUrl(result.generatedImageUrl || null);
     } catch (error) {
       console.error('AI call failed:', error);
       toast({ variant: 'destructive', title: 'An error occurred', description: 'Failed to identify. Please try again.'});
@@ -228,6 +231,7 @@ export default function CameraPage() {
     setProducts(null);
     setCurrentAction(null);
     setSources(null);
+    setGeneratedImageUrl(null);
   };
 
   const ActionButton = ({ onClick, action, icon, children }: { onClick: () => void, action: string, icon: React.ReactNode, children: React.ReactNode }) => (
@@ -272,7 +276,7 @@ export default function CameraPage() {
 
       <footer className="absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 bg-gradient-to-t from-black/70 to-transparent">
         <div className="max-w-4xl mx-auto space-y-4">
-          {imageData && <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} />}
+          {imageData && <AnswerBox isLoading={isAnalyzing} title={answerTitle} icon={answerIcon} response={aiResponse} products={products} sources={sources} generatedImageUrl={generatedImageUrl} />}
           
           <div className="flex items-center justify-center gap-4">
             {!imageData ? (
