@@ -11,6 +11,7 @@ import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
 import AnswerBox from '@/components/gideon/answer-box';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -25,7 +26,6 @@ export default function Home() {
 
   useEffect(() => {
     let stream: MediaStream | null = null;
-    const videoElement = videoRef.current;
 
     const startCamera = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -62,8 +62,8 @@ export default function Home() {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
-      if (videoElement) {
-        videoElement.srcObject = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
     };
   }, [imagePreview, toast]);
@@ -165,20 +165,19 @@ export default function Home() {
         </header>
 
         <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden">
-          {imagePreview ? (
-            <Image src={imagePreview} alt="Selected preview" layout="fill" objectFit="contain" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                {!hasCameraPermission && !imagePreview && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
-                        <Camera className="h-16 w-16 mb-4 text-gray-500" />
-                        <h2 className="text-xl font-semibold mb-2">Camera is off</h2>
-                        <p className="text-gray-400">Please grant camera permissions to continue.</p>
-                    </div>
-                )}
-            </div>
-          )}
+            <video ref={videoRef} className={cn("w-full h-full object-cover", { "hidden": !!imagePreview })} autoPlay muted playsInline />
+            {imagePreview && (
+                <Image src={imagePreview} alt="Selected preview" layout="fill" objectFit="contain" />
+            )}
+            
+            {!hasCameraPermission && !imagePreview && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
+                    <Camera className="h-16 w-16 mb-4 text-gray-500" />
+                    <h2 className="text-xl font-semibold mb-2">Camera is off</h2>
+                    <p className="text-gray-400">Please grant camera permissions to continue.</p>
+                </div>
+            )}
+
           <AnimatePresence>
             {(isLoading || aiResponse) && (
               <motion.div
