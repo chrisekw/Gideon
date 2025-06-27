@@ -10,7 +10,18 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
 import { findProducts } from '@/ai/flows/find-products';
-import { Camera, Loader2, Sparkles, Upload, X, ShoppingBag } from 'lucide-react';
+import {
+  Camera,
+  Loader2,
+  Sparkles,
+  Upload,
+  X,
+  ShoppingBag,
+  Calculator,
+  Leaf,
+  BrainCircuit,
+  ScanText,
+} from 'lucide-react';
 import AnswerBox from '@/components/gideon/answer-box';
 
 type Product = {
@@ -19,6 +30,35 @@ type Product = {
   price: string;
   link: string;
 };
+
+const corePurposes = [
+  {
+    icon: ShoppingBag,
+    title: "Product Identification",
+    description: "Snap a product to find what it is, what it costs, and where to buy.",
+  },
+  {
+    icon: Calculator,
+    title: "Homework Solver",
+    description: "Snap your math or science question and get step-by-step help.",
+  },
+  {
+    icon: Leaf,
+    title: "Nature & Object Recognition",
+    description: "Identify plants, animals, landmarks, or random objects instantly.",
+  },
+  {
+    icon: BrainCircuit,
+    title: "General Knowledge",
+    description: "Snap anything and ask — ‘What is this?’ Gideon will tell you.",
+  },
+  {
+    icon: ScanText,
+    title: "Text & Document Extraction",
+    description: "Snap text from paper, receipts, or whiteboards — extract, summarize, or explain it.",
+  },
+];
+
 
 export default function HomePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -126,7 +166,7 @@ export default function HomePage() {
   return (
     <div className="w-full max-w-4xl flex-1 flex flex-col container p-4 md:p-8">
       {!imagePreview ? (
-        <div className="flex flex-col items-center justify-center text-center gap-8 flex-1">
+        <div className="flex flex-col items-center justify-center text-center gap-6 flex-1 py-8">
           <div className="text-center">
             <h2 className='text-5xl font-bold tracking-tighter'>GIDEON</h2>
             <p className='text-muted-foreground text-xl mt-2'>Snap. Ask. Discover.</p>
@@ -150,6 +190,19 @@ export default function HomePage() {
             accept="image/*"
             className="hidden"
           />
+          <div className="w-full max-w-3xl mt-12 space-y-8">
+            {corePurposes.map((purpose, index) => (
+              <div key={index} className="flex items-center gap-6 text-left">
+                <div className="bg-primary/10 p-4 rounded-full">
+                  <purpose.icon className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg">{purpose.title}</h4>
+                  <p className="text-muted-foreground">{purpose.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="relative w-full space-y-4">
