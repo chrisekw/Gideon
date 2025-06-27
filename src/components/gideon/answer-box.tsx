@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
+import HomeworkSolution from "./homework-solution";
 
 type Product = {
   name: string;
@@ -89,7 +90,9 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
      )
   }
 
+  const isHomeworkSolution = title === 'Homework Solution' && response;
   const hasContent = response || imageUrl || (products && products.length > 0) || (sources && sources.length > 0);
+  
   if (!hasContent) {
     return null;
   }
@@ -111,42 +114,48 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
         </div>
       </CardHeader>
       <CardContent>
-        {imageUrl && (
-          <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden border">
-            <Image src={imageUrl} alt="AI generated visual aid" fill className="object-contain" />
-          </div>
-        )}
-        {response && (
-            <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                {response}
-            </div>
-        )}
-        {products && products.length > 0 && (
-            <div className={cn("space-y-3", (response || imageUrl) && "mt-4")}>
-                {products.map((product, index) => (
-                    <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
-                        <div className="flex justify-between items-start gap-4">
-                            <div>
-                                <p className="font-semibold text-primary">{product.name}</p>
-                                <p className="text-sm text-muted-foreground">{product.brand}</p>
+        {isHomeworkSolution ? (
+          <HomeworkSolution solution={response} diagramUrl={imageUrl} />
+        ) : (
+          <>
+            {imageUrl && (
+              <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden border">
+                <Image src={imageUrl} alt="AI generated visual aid" fill className="object-contain" />
+              </div>
+            )}
+            {response && (
+                <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                    {response}
+                </div>
+            )}
+            {products && products.length > 0 && (
+                <div className={cn("space-y-3", (response || imageUrl) && "mt-4")}>
+                    {products.map((product, index) => (
+                        <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+                            <div className="flex justify-between items-start gap-4">
+                                <div>
+                                    <p className="font-semibold text-primary">{product.name}</p>
+                                    <p className="text-sm text-muted-foreground">{product.brand}</p>
+                                </div>
+                                <p className="font-bold text-lg text-right whitespace-nowrap">{product.price}</p>
                             </div>
-                            <p className="font-bold text-lg text-right whitespace-nowrap">{product.price}</p>
-                        </div>
-                    </a>
-                ))}
-            </div>
-        )}
-        {sources && sources.length > 0 && (
-            <div className={cn("space-y-3", (response || imageUrl || (products && products.length > 0)) && "mt-4")}>
-                <h4 className="font-semibold text-base">Sources</h4>
-                <div className="space-y-2">
-                    {sources.map((source, index) => (
-                         <a key={index} href={source.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm">
-                             <p className="font-medium text-primary hover:underline">{source.title}</p>
-                         </a>
+                        </a>
                     ))}
                 </div>
-            </div>
+            )}
+            {sources && sources.length > 0 && (
+                <div className={cn("space-y-3", (response || imageUrl || (products && products.length > 0)) && "mt-4")}>
+                    <h4 className="font-semibold text-base">Sources</h4>
+                    <div className="space-y-2">
+                        {sources.map((source, index) => (
+                             <a key={index} href={source.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm">
+                                 <p className="font-medium text-primary hover:underline">{source.title}</p>
+                             </a>
+                        ))}
+                    </div>
+                </div>
+            )}
+          </>
         )}
       </CardContent>
       {audioDataUri && <audio ref={audioRef} src={audioDataUri} className="hidden" />}
