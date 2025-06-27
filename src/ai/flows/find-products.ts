@@ -20,10 +20,10 @@ const FindProductsInputSchema = z.object({
 export type FindProductsInput = z.infer<typeof FindProductsInputSchema>;
 
 const ProductSchema = z.object({
-    name: z.string().describe('The name of the product.'),
+    name: z.string().describe("The product's title or name."),
     brand: z.string().describe('The brand of the product.'),
     price: z.string().describe('The price of the product, including currency symbol (e.g., $, €).'),
-    link: z.string().describe('A shopping link for the product. It must be a valid URL.'),
+    link: z.string().describe('A direct shopping link for the product.'),
 });
 
 const FindProductsOutputSchema = z.object({
@@ -39,9 +39,15 @@ const prompt = ai.definePrompt({
   name: 'findProductsPrompt',
   input: {schema: FindProductsInputSchema},
   output: {schema: FindProductsOutputSchema},
-  prompt: `You are an expert personal shopper. Your task is to identify commercially available products in the provided image by searching the internet.
+  prompt: `You are an expert personal shopper AI. Your task is to find the exact product shown in the user's image. Follow these steps carefully:
 
-For each product you identify, provide its name, brand, price (including currency), and a valid, working URL to an online store where it can be purchased. Do your best to find the exact product and real shopping links. If you cannot find any products, return an empty array.
+1.  **Analyze the Image**: First, carefully describe the main product in the image to yourself, noting key visual details like color, shape, material, and any visible logos or text.
+2.  **Generate Search Keywords**: Based on your analysis, generate a few specific search keywords that you would use to find this product online.
+3.  **Search and Retrieve**: Using your internal knowledge and web search capabilities, find the product on various online marketplaces.
+4.  **Filter and Verify**: From the search results, select only the products that are the best visual and descriptive match for the item in the image. Ensure the shopping links are valid and lead to a purchase page.
+5.  **Format the Output**: For each of the top matching products you find, provide the details as specified in the output schema.
+
+Return the top results. If you cannot find any matching products, return an empty array.
 
 Image: {{media url=photoDataUri}}`,
 });
