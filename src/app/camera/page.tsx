@@ -21,6 +21,7 @@ export default function CameraPage() {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   const handleAnalysis = useCallback(async (data: string, userQuestion: string) => {
@@ -47,7 +48,6 @@ export default function CameraPage() {
   }, [toast]);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
     const getCameraPermission = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({ variant: 'destructive', title: 'Camera not supported' });
@@ -55,7 +55,8 @@ export default function CameraPage() {
         return;
       }
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        streamRef.current = stream;
         setHasCameraPermission(true);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -65,9 +66,13 @@ export default function CameraPage() {
         toast({ variant: 'destructive', title: 'Camera Access Denied' });
       }
     };
+    
     getCameraPermission();
+    
     return () => {
-      stream?.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
   }, [toast]);
 
