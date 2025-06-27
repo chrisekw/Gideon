@@ -1,10 +1,10 @@
+
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Camera, Eye, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Eye, Loader2, Sparkles, Upload, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
@@ -19,7 +19,54 @@ export default function Home() {
   const [aiResponse, setAiResponse] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    const videoElement = videoRef.current;
+
+    const startCamera = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Not Supported',
+          description: 'Your browser does not support camera access.',
+        });
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings.',
+        });
+      }
+    };
+
+    if (!imagePreview) {
+      startCamera();
+    }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoElement) {
+        videoElement.srcObject = null;
+      }
+    };
+  }, [imagePreview, toast]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -39,6 +86,21 @@ export default function Home() {
         setImageData(result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSnap = () => {
+    if (videoRef.current && hasCameraPermission) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        setImagePreview(dataUri);
+        setImageData(dataUri);
+      }
     }
   };
 
@@ -80,74 +142,105 @@ export default function Home() {
     }
   };
 
+  const reset = () => {
+    setImagePreview(null);
+    setImageData(null);
+    setAiResponse('');
+    setQuestion('');
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-background">
-      <div className="w-full max-w-2xl">
-        <Card className="w-full shadow-2xl">
-          <CardHeader className="text-center p-6 sm:p-8">
-            <div className="flex justify-center items-center mb-4">
-              <div className="bg-primary p-3 rounded-full shadow-lg">
-                <Eye className="h-8 w-8 text-primary-foreground" />
-              </div>
+    <main className="flex h-screen flex-col items-center bg-black text-white">
+      <div className="w-full max-w-2xl flex flex-col h-full">
+        <header className="flex justify-between items-center p-4 bg-black/50 z-10">
+            <h1 className="text-xl font-bold flex items-center gap-2"><Eye className="h-6 w-6" /> Gideon Eye</h1>
+            {imagePreview && (
+                <Button variant="ghost" size="icon" onClick={reset}>
+                    <RotateCcw className="h-5 w-5" />
+                </Button>
+            )}
+        </header>
+
+        <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden">
+          {imagePreview ? (
+            <Image src={imagePreview} alt="Selected preview" layout="fill" objectFit="contain" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                {!hasCameraPermission && !imagePreview && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
+                        <Camera className="h-16 w-16 mb-4 text-gray-500" />
+                        <h2 className="text-xl font-semibold mb-2">Camera is off</h2>
+                        <p className="text-gray-400">Please grant camera permissions to continue.</p>
+                    </div>
+                )}
             </div>
-            <CardTitle className="font-headline text-3xl md:text-4xl tracking-tight">Snap a Photo. Get Instant Answers.</CardTitle>
-            <CardDescription className="text-base text-muted-foreground mt-2 max-w-xl mx-auto">Snap any image and let Gideon tell you what it is, how to use it, or where to find it.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div
-              className="relative aspect-video w-full border-2 border-dashed border-border rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors bg-muted/20"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
-              {imagePreview ? (
-                <Image src={imagePreview} alt="Selected preview" fill style={{ objectFit: 'contain' }} className="rounded-lg p-1" />
-              ) : (
-                <div className="text-center text-muted-foreground p-4">
-                  <Camera className="mx-auto h-12 w-12 mb-2" />
-                  <p className="font-medium">Click to upload an image</p>
-                  <p className="text-xs">PNG, JPG, GIF up to 4MB</p>
-                </div>
-              )}
-            </div>
-            <Textarea
-              placeholder="Ask a question about the image... (optional)"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="resize-none"
-              rows={3}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleAskAi} disabled={isLoading || !imagePreview} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
-              {isLoading ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-5 w-5" />
-              )}
-              {isLoading ? 'Thinking...' : 'Ask AI'}
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <AnimatePresence>
-          {(isLoading || aiResponse) && (
-            <motion.div
-              className="mt-8 w-full"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <AnswerBox isLoading={isLoading} response={aiResponse} />
-            </motion.div>
           )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {(isLoading || aiResponse) && (
+              <motion.div
+                className="absolute bottom-4 left-4 right-4 z-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="max-h-48 overflow-y-auto rounded-lg" style={{ scrollbarWidth: 'none' }}>
+                  <AnswerBox isLoading={isLoading} response={aiResponse} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        
+        <footer className="z-10 bg-black/50">
+          {imagePreview && !aiResponse && !isLoading && (
+              <div className="p-4 pt-2">
+                   <Textarea
+                      placeholder="Ask a question about the image... (optional)"
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      className="resize-none bg-gray-900 border-gray-700 text-white placeholder:text-gray-400 focus:ring-accent"
+                      rows={2}
+                  />
+              </div>
+          )}
+
+          <div className="flex items-center justify-around p-4">
+              <Button variant="ghost" size="icon" className="h-16 w-16 rounded-full text-white/80 hover:text-white hover:bg-white/10 disabled:text-white/40" onClick={() => fileInputRef.current?.click()} disabled={!!imagePreview}>
+                  <Upload className="h-8 w-8" />
+                  <span className="sr-only">Upload</span>
+              </Button>
+               <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                  disabled={!!imagePreview}
+              />
+              <Button 
+                  variant="outline" 
+                  className="h-20 w-20 p-1 rounded-full border-4 border-white bg-transparent hover:bg-white/10 disabled:opacity-50"
+                  onClick={handleSnap}
+                  disabled={!!imagePreview || !hasCameraPermission}
+              >
+                <div className="h-full w-full rounded-full bg-white"></div>
+                <span className="sr-only">Snap photo</span>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-16 w-16 rounded-full text-white/80 hover:text-white hover:bg-white/10 disabled:text-white/40" onClick={handleAskAi} disabled={isLoading || !imagePreview}>
+                  {isLoading ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : (
+                      <Sparkles className="h-8 w-8 text-accent" />
+                  )}
+                  <span className="sr-only">Ask AI</span>
+              </Button>
+          </div>
+        </footer>
       </div>
     </main>
   );
