@@ -2,13 +2,14 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import { Loader2, Sparkles, Upload } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
@@ -102,13 +103,13 @@ export default function Home() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8">
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Upload Image</CardTitle>
-                <CardDescription>Select an image file to analyze.</CardDescription>
+                <CardTitle>1. Provide an Image</CardTitle>
+                <CardDescription>Upload an image or use your camera.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-4">
                 <div 
                   className="aspect-video rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
@@ -130,17 +131,43 @@ export default function Home() {
                   accept="image/*"
                   className="hidden"
                 />
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or
+                    </span>
+                  </div>
+                </div>
+
+                <Link href="/camera" className='w-full'>
+                    <Button variant="secondary" className="w-full">
+                        <Camera className="mr-2 h-4 w-4" />
+                        Use Camera
+                    </Button>
+                </Link>
               </CardContent>
             </Card>
 
-            <Textarea
-              placeholder="Ask a question about the image... (optional)"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="resize-none"
-              rows={3}
-              disabled={!imageData}
-            />
+            <Card>
+                <CardHeader>
+                    <CardTitle>2. Ask a Question</CardTitle>
+                    <CardDescription>Optionally, ask something specific about the uploaded image.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Textarea
+                        placeholder="e.g., What color is the car? Is this plant healthy?"
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        className="resize-none"
+                        rows={3}
+                        disabled={!imageData || isLoading}
+                    />
+                </CardContent>
+            </Card>
 
             <div className="flex gap-4">
               <Button onClick={handleAskAi} disabled={isLoading || !imageData} className="w-full">
