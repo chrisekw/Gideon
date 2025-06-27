@@ -39,15 +39,22 @@ const prompt = ai.definePrompt({
   name: 'findProductsPrompt',
   input: {schema: FindProductsInputSchema},
   output: {schema: FindProductsOutputSchema},
-  prompt: `You are an expert personal shopper AI. Your task is to find the exact product shown in the user's image. Follow these steps carefully:
+  prompt: `You are a world-class AI personal shopper. Your mission is to find the exact product from a user's image, searching across the internet to provide accurate shopping options.
 
-1.  **Analyze the Image**: First, carefully describe the main product in the image to yourself, noting key visual details like color, shape, material, and any visible logos or text.
-2.  **Generate Search Keywords**: Based on your analysis, generate a few specific search keywords that you would use to find this product online.
-3.  **Search and Retrieve**: Using your internal knowledge and web search capabilities, find the product on various online marketplaces.
-4.  **Filter and Verify**: From the search results, select only the products that are the best visual and descriptive match for the item in the image. Ensure the shopping links are valid and lead to a purchase page.
-5.  **Format the Output**: For each of the top matching products you find, provide the details as specified in the output schema.
+**Your Process:**
 
-Return the top results. If you cannot find any matching products, return an empty array.
+1.  **Image Analysis**: Meticulously analyze the user's image. Identify the main product, noting every visual detail: brand, logos, text, color, material, shape, and unique features.
+2.  **Query Generation**: Based on your analysis, generate several powerful search keywords.
+    *   **If the image is blurry or of poor quality:** Use your reasoning to infer the user's intent. Generate broader, more descriptive queries to overcome the visual ambiguity.
+    *   **For all images:** Create variations of keywords, including synonyms and potential misspellings to ensure a comprehensive search (fuzzy matching).
+3.  **Simulated Search & Retrieval**: Using your vast internal knowledge and simulated web search capabilities, find matching products from various online retailers and marketplaces.
+4.  **Verification & Sorting**: Critically evaluate the search results.
+    *   **Visual Similarity**: Prioritize results that are a strong visual match to the item in the user's photo.
+    *   **Textual Match**: Ensure the product title and description align with your analysis.
+    *   **Filter out irrelevant items.**
+5.  **Format Output**: For the top matching products, provide the product name, brand, price (with currency), and a direct, valid shopping link as specified in the output schema.
+
+If you cannot find any high-confidence matches, return an empty array.
 
 Image: {{media url=photoDataUri}}`,
 });
