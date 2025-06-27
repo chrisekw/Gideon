@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -130,7 +131,7 @@ export default function CameraPage() {
             {!imageData ? (
                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
             ) : (
-                <Image src={imageData} alt="Snapped photo" layout="fill" objectFit="contain" />
+                <Image src={imageData} alt="Snapped photo" fill className="object-contain" />
             )}
         </div>
         <canvas ref={canvasRef} className="hidden" />

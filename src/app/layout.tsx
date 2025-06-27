@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import SidebarNav from '@/components/gideon/sidebar-nav';
 import React from 'react';
+import { Bot } from 'lucide-react';
 
 
 export default function RootLayout({
@@ -29,24 +30,12 @@ export default function RootLayout({
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-2 p-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 256 256"
-                className="h-6 w-6 text-primary"
-              >
-                <rect width="256" height="256" fill="none"></rect>
-                <path
-                  d="M88,134.9,176,192,152,96l-32.2,4.1,4.1-32.2L96,152Z"
-                  opacity="0.2"
-                  fill="currentColor"
-                ></path>
-                <path
-                  d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm48,168-24-96,4.1-32.2a8,8,0,0,0-10.1-10.1L113.8,58,96,152,40,176,88,134.9,128,128Z"
-                  fill="currentColor"
-                ></path>
-              </svg>
-              <h1 className="text-xl font-semibold tracking-tight">Gideon</h1>
+            <div className="flex items-center gap-3 p-3">
+              <Bot className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-bold tracking-tighter text-primary">GIDEON</h1>
+                <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover.</p>
+              </div>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -55,7 +44,10 @@ export default function RootLayout({
         </Sidebar>
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-            <h1 className="text-2xl font-bold tracking-tight">Gideon</h1>
+             <div className="flex items-center gap-3">
+              <Bot className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-bold tracking-tight">GIDEON</h1>
+            </div>
             <SidebarTrigger />
           </header>
           <main className="flex flex-1 flex-col items-center">
@@ -68,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Gideon</title>
+        <title>GIDEON</title>
         <meta name="description" content="Your intelligent image analysis assistant." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

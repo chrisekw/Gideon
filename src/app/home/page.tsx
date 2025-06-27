@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import { Camera, Loader2, Sparkles, Upload, X } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Upload, X, Bot } from 'lucide-react';
 import AnswerBox from '@/components/gideon/answer-box';
 
 export default function HomePage() {
@@ -85,21 +85,24 @@ export default function HomePage() {
     <div className="w-full max-w-4xl flex-1 flex flex-col container p-4 md:p-8">
       {!imagePreview ? (
         <div className="flex flex-col items-center justify-center text-center gap-8 flex-1">
-          <div className='space-y-2'>
-            <h2 className='text-4xl font-bold'>Intelligent Analysis Starts Here</h2>
-            <p className='text-muted-foreground text-lg'>Upload an image or use your camera to begin.</p>
+          <div className='flex items-center gap-4 text-primary'>
+             <Bot className="h-16 w-16" />
+             <div>
+                <h2 className='text-4xl font-bold tracking-tighter'>GIDEON</h2>
+                <p className='text-muted-foreground text-lg text-left'>Snap. Ask. Discover.</p>
+              </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <Button size="lg" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2" />
               Upload Image
             </Button>
-            <Link href="/camera" passHref>
-              <Button size="lg" variant="secondary">
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/camera">
                 <Camera className="mr-2" />
                 Use Camera
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
           <input
             type="file"
@@ -112,7 +115,7 @@ export default function HomePage() {
       ) : (
         <div className="relative w-full space-y-4">
           <div className="relative group aspect-video w-full rounded-xl overflow-hidden border">
-            <Image src={imagePreview} alt="Selected preview" layout="fill" className="object-contain" />
+            <Image src={imagePreview} alt="Selected preview" fill={true} className="object-contain" />
             <Button
                 variant="destructive"
                 size="icon"
