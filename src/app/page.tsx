@@ -1,17 +1,15 @@
-
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Eye, Loader2, Sparkles, Upload, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import AnswerBox from '@/components/gideon/answer-box';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { Loader2, Sparkles, Upload } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -20,53 +18,7 @@ export default function Home() {
   const [aiResponse, setAiResponse] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(true);
   const { toast } = useToast();
-
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    const startCamera = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Not Supported',
-          description: 'Your browser does not support camera access.',
-        });
-        return;
-      }
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings.',
-        });
-      }
-    };
-
-    if (!imagePreview) {
-      startCamera();
-    }
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-    };
-  }, [imagePreview, toast]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,23 +36,10 @@ export default function Home() {
         const result = reader.result as string;
         setImagePreview(result);
         setImageData(result);
+        setAiResponse('');
+        setQuestion('');
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSnap = () => {
-    if (videoRef.current && hasCameraPermission) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        setImagePreview(dataUri);
-        setImageData(dataUri);
-      }
     }
   };
 
@@ -142,7 +81,7 @@ export default function Home() {
     }
   };
 
-  const reset = () => {
+  const resetState = () => {
     setImagePreview(null);
     setImageData(null);
     setAiResponse('');
@@ -153,94 +92,103 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-screen flex-col items-center bg-black text-white">
-      <div className="w-full max-w-2xl flex flex-col h-full">
-        <header className="flex justify-between items-center p-4 bg-black/50 z-10">
-            <h1 className="text-xl font-bold flex items-center gap-2"><Eye className="h-6 w-6" /> Gideon Eye</h1>
-            {imagePreview && (
-                <Button variant="ghost" size="icon" onClick={reset}>
-                    <RotateCcw className="h-5 w-5" />
-                </Button>
-            )}
-        </header>
-
-        <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden">
-            <video ref={videoRef} className={cn("w-full h-full object-cover", { "hidden": !!imagePreview })} autoPlay muted playsInline />
-            {imagePreview && (
-                <Image src={imagePreview} alt="Selected preview" layout="fill" objectFit="contain" />
-            )}
-            
-            {!hasCameraPermission && !imagePreview && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
-                    <Camera className="h-16 w-16 mb-4 text-gray-500" />
-                    <h2 className="text-xl font-semibold mb-2">Camera is off</h2>
-                    <p className="text-gray-400">Please grant camera permissions to continue.</p>
-                </div>
-            )}
-
-          <AnimatePresence>
-            {(isLoading || aiResponse) && (
-              <motion.div
-                className="absolute bottom-4 left-4 right-4 z-10"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="max-h-48 overflow-y-auto rounded-lg" style={{ scrollbarWidth: 'none' }}>
-                  <AnswerBox isLoading={isLoading} response={aiResponse} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+            <h1 className="text-2xl font-bold tracking-tight">Gideon Eye</h1>
+            <p className="text-sm text-muted-foreground">Your intelligent image analysis assistant.</p>
         </div>
-        
-        <footer className="z-10 bg-black/50">
-          {imagePreview && !aiResponse && !isLoading && (
-              <div className="p-4 pt-2">
-                   <Textarea
-                      placeholder="Ask a question about the image... (optional)"
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      className="resize-none bg-gray-900 border-gray-700 text-white placeholder:text-gray-400 focus:ring-accent"
-                      rows={2}
-                  />
-              </div>
-          )}
+      </header>
 
-          <div className="flex items-center justify-around p-4">
-              <Button variant="ghost" size="icon" className="h-16 w-16 rounded-full text-white/80 hover:text-white hover:bg-white/10 disabled:text-white/40" onClick={() => fileInputRef.current?.click()} disabled={!!imagePreview}>
-                  <Upload className="h-8 w-8" />
-                  <span className="sr-only">Upload</span>
-              </Button>
-               <input
+      <main className="flex-1 container mx-auto p-4 md:p-8">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload Image</CardTitle>
+                <CardDescription>Select an image file to analyze.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  className="aspect-video rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {imagePreview ? (
+                    <Image src={imagePreview} alt="Selected preview" width={400} height={225} className="object-contain w-full h-full rounded-md" />
+                  ) : (
+                    <div className="text-center text-muted-foreground p-4">
+                      <Upload className="mx-auto h-12 w-12 mb-2" />
+                      <p className="font-semibold">Click to upload an image</p>
+                      <p className="text-xs mt-1">(Max 4MB)</p>
+                    </div>
+                  )}
+                </div>
+                <input
                   type="file"
                   ref={fileInputRef}
                   onChange={handleImageChange}
                   accept="image/*"
                   className="hidden"
-                  disabled={!!imagePreview}
-              />
-              <Button 
-                  variant="outline" 
-                  className="h-20 w-20 p-1 rounded-full border-4 border-white bg-transparent hover:bg-white/10 disabled:opacity-50"
-                  onClick={handleSnap}
-                  disabled={!!imagePreview || !hasCameraPermission}
-              >
-                <div className="h-full w-full rounded-full bg-white"></div>
-                <span className="sr-only">Snap photo</span>
+                />
+              </CardContent>
+            </Card>
+
+            <Textarea
+              placeholder="Ask a question about the image... (optional)"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="resize-none"
+              rows={3}
+              disabled={!imageData}
+            />
+
+            <div className="flex gap-4">
+              <Button onClick={handleAskAi} disabled={isLoading || !imageData} className="w-full">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {question.trim() ? 'Ask AI' : 'Describe Image'}
+                  </>
+                )}
               </Button>
-              <Button variant="ghost" size="icon" className="h-16 w-16 rounded-full text-white/80 hover:text-white hover:bg-white/10 disabled:text-white/40" onClick={handleAskAi} disabled={isLoading || !imagePreview}>
-                  {isLoading ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                      <Sparkles className="h-8 w-8 text-accent" />
-                  )}
-                  <span className="sr-only">Ask AI</span>
-              </Button>
+              {imagePreview && (
+                <Button variant="outline" onClick={resetState} disabled={isLoading}>
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
-        </footer>
-      </div>
-    </main>
+
+          <div className="flex flex-col gap-4">
+            <Card className="flex-1 flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  AI Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                {isLoading ? (
+                  <div className="space-y-3 p-1">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {aiResponse || 'The AI\'s response will appear here.'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
