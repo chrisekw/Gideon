@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for identifying objects in images.
@@ -21,7 +22,7 @@ export type IdentifyObjectInput = z.infer<typeof IdentifyObjectInputSchema>;
 
 const IdentifyObjectOutputSchema = z.object({
   identification: z.string().describe('A concise identification of the main object, plant, or animal in the image.'),
-  description: z.string().describe('A brief, interesting description of the identified item.'),
+  description: z.string().describe('A brief, interesting description of the identified item. If the item is a plant, this should include basic care tips (sunlight, water, soil).'),
 });
 export type IdentifyObjectOutput = z.infer<typeof IdentifyObjectOutputSchema>;
 
@@ -33,7 +34,11 @@ const prompt = ai.definePrompt({
   name: 'identifyObjectPrompt',
   input: {schema: IdentifyObjectInputSchema},
   output: {schema: IdentifyObjectOutputSchema},
-  prompt: `You are an expert in identifying things. Look at the image and identify what it is. It could be a plant, animal, landmark, or any other object. Provide a concise identification followed by a brief, interesting description.
+  prompt: `You are an expert in identifying things. Look at the image and identify what it is. It could be a plant, animal, landmark, or any other object.
+
+Provide a concise identification followed by a brief, interesting description.
+
+If you identify a plant, please also include a section with basic care tips (e.g., sunlight, watering, soil).
 
 Image: {{media url=photoDataUri}}`,
 });
