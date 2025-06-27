@@ -10,16 +10,22 @@ type Product = {
   link: string;
 };
 
+type Source = {
+  title: string;
+  link: string;
+};
+
 type AnswerBoxProps = {
   isLoading: boolean;
   title: string;
   icon: React.ReactNode;
   response: string;
   products?: Product[] | null;
+  sources?: Source[] | null;
 };
 
-export default function AnswerBox({ isLoading, title, icon, response, products }: AnswerBoxProps) {
-  const showSkeleton = isLoading && !response && (!products || products.length === 0);
+export default function AnswerBox({ isLoading, title, icon, response, products, sources }: AnswerBoxProps) {
+  const showSkeleton = isLoading && !response && (!products || products.length === 0) && (!sources || sources.length === 0);
 
   if (showSkeleton) {
      return (
@@ -40,7 +46,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products }
      )
   }
 
-  const hasContent = response || (products && products.length > 0);
+  const hasContent = response || (products && products.length > 0) || (sources && sources.length > 0);
   if (!hasContent) {
     return null;
   }
@@ -72,6 +78,18 @@ export default function AnswerBox({ isLoading, title, icon, response, products }
                         </div>
                     </a>
                 ))}
+            </div>
+        )}
+        {sources && sources.length > 0 && (
+            <div className={cn("space-y-3", (response || (products && products.length > 0)) && "mt-4")}>
+                <h4 className="font-semibold text-base">Sources</h4>
+                <div className="space-y-2">
+                    {sources.map((source, index) => (
+                         <a key={index} href={source.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm">
+                             <p className="font-medium text-primary hover:underline">{source.title}</p>
+                         </a>
+                    ))}
+                </div>
             </div>
         )}
       </CardContent>
