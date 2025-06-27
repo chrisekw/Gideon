@@ -14,7 +14,7 @@ const FindProductsInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo containing products, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo containing products, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type FindProductsInput = z.infer<typeof FindProductsInputSchema>;
@@ -47,7 +47,7 @@ const prompt = ai.definePrompt({
 2.  **Query Generation**: Based on your analysis, generate several powerful search keywords.
     *   **If the image is blurry or of poor quality:** Use your reasoning to infer the user's intent. Generate broader, more descriptive queries to overcome the visual ambiguity.
     *   **For all images:** Create variations of keywords, including synonyms and potential misspellings to ensure a comprehensive search (fuzzy matching).
-3.  **Simulated E-commerce Search**: Using your vast internal knowledge, simulate searching major e-commerce platforms and online marketplaces. You should act as if you are scraping these sites for the most relevant product listings.
+3.  **Simulated E-commerce Search**: Using your vast internal knowledge, simulate searching specifically on Amazon, AliExpress, Temu, and Jumia.ng. You should act as if you are scraping these sites for the most relevant product listings.
 4.  **Verification & Sorting**: Critically evaluate the simulated search results.
     *   **Visual Similarity**: Prioritize results that are a strong visual match to the item in the user's photo.
     *   **Textual Match**: Ensure the product title and description align with your analysis.
