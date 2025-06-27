@@ -22,7 +22,7 @@ export type FindProductsInput = z.infer<typeof FindProductsInputSchema>;
 const ProductSchema = z.object({
     name: z.string().describe('The name of the product.'),
     description: z.string().describe('A brief description of the product.'),
-    link: z.string().url().describe('A shopping link for the product.'),
+    link: z.string().describe('A shopping link for the product. It must be a valid URL.'),
 });
 
 const FindProductsOutputSchema = z.object({
