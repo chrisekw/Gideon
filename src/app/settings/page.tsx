@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ThemeSwitcher } from "./theme-switcher";
+import { ThemeSwitcher } from "@/components/gideon/theme-switcher";
 
 export default function SettingsPage() {
   return (
@@ -9,7 +9,7 @@ export default function SettingsPage() {
                 <CardTitle>Settings</CardTitle>
                 <CardDescription>
                     Manage your application settings and preferences.
-                </Description>
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
