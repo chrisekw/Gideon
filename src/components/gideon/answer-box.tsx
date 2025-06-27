@@ -1,7 +1,14 @@
+
+"use client";
+
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Volume2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { textToSpeech } from "@/ai/flows/text-to-speech";
 
 type Product = {
   name: string;
@@ -25,6 +32,40 @@ type AnswerBoxProps = {
 };
 
 export default function AnswerBox({ isLoading, title, icon, response, products, sources }: AnswerBoxProps) {
+  const { toast } = useToast();
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const handleSpeak = async () => {
+    if (!response) return;
+    setIsSpeaking(true);
+    setAudioDataUri(null);
+    try {
+      const result = await textToSpeech(response);
+      setAudioDataUri(result.audioDataUri);
+    } catch (error) {
+      console.error("TTS call failed:", error);
+      toast({
+        variant: "destructive",
+        title: "An error occurred",
+        description: "Failed to generate speech. Please try again.",
+      });
+    } finally {
+      setIsSpeaking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (audioDataUri && audioRef.current) {
+      audioRef.current.play().catch(e => console.error("Audio playback failed", e));
+    }
+  }, [audioDataUri]);
+
+  useEffect(() => {
+    setAudioDataUri(null);
+  }, [response]);
+  
   const showSkeleton = isLoading && !response && (!products || products.length === 0) && (!sources || sources.length === 0);
 
   if (showSkeleton) {
@@ -54,10 +95,18 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   return (
     <Card className="animate-in fade-in duration-500">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-           {icon}
-           {title}
-        </CardTitle>
+        <div className="flex justify-between items-start">
+            <CardTitle className="flex items-center gap-2">
+            {icon}
+            {title}
+            </CardTitle>
+            {response && !isLoading && (
+                <Button onClick={handleSpeak} variant="ghost" size="icon" disabled={isSpeaking} className="shrink-0">
+                    {isSpeaking ? <Loader2 className="h-5 w-5 animate-spin" /> : <Volume2 className="h-5 w-5" />}
+                    <span className="sr-only">Speak</span>
+                </Button>
+            )}
+        </div>
       </CardHeader>
       <CardContent>
         {response && (
@@ -93,6 +142,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             </div>
         )}
       </CardContent>
+      {audioDataUri && <audio ref={audioRef} src={audioDataUri} className="hidden" />}
     </Card>
   );
 }

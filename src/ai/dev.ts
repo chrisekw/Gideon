@@ -9,3 +9,4 @@ import '@/ai/flows/find-products.ts';
 import '@/ai/flows/solve-homework.ts';
 import '@/ai/flows/identify-object.ts';
 import '@/ai/flows/extract-text.ts';
+import '@/ai/flows/text-to-speech.ts';
