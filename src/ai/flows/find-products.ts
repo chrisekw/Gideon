@@ -21,7 +21,8 @@ export type FindProductsInput = z.infer<typeof FindProductsInputSchema>;
 
 const ProductSchema = z.object({
     name: z.string().describe('The name of the product.'),
-    description: z.string().describe('A brief description of the product.'),
+    brand: z.string().describe('The brand of the product.'),
+    price: z.string().describe('The price of the product, including currency symbol (e.g., $, €).'),
     link: z.string().describe('A shopping link for the product. It must be a valid URL.'),
 });
 
@@ -38,9 +39,9 @@ const prompt = ai.definePrompt({
   name: 'findProductsPrompt',
   input: {schema: FindProductsInputSchema},
   output: {schema: FindProductsOutputSchema},
-  prompt: `You are an expert personal shopper. Your task is to identify commercially available products in the provided image.
+  prompt: `You are an expert personal shopper. Your task is to identify commercially available products in the provided image by searching the internet.
 
-For each product you identify, provide its name, a short description, and a valid, working URL to an online store where it can be purchased. Do your best to find real shopping links. If you cannot find any products, return an empty array.
+For each product you identify, provide its name, brand, price (including currency), and a valid, working URL to an online store where it can be purchased. Do your best to find the exact product and real shopping links. If you cannot find any products, return an empty array.
 
 Image: {{media url=photoDataUri}}`,
 });

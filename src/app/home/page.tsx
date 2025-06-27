@@ -15,7 +15,8 @@ import AnswerBox from '@/components/gideon/answer-box';
 
 type Product = {
   name: string;
-  description: string;
+  brand: string;
+  price: string;
   link: string;
 };
 

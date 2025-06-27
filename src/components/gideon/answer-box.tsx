@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 type Product = {
   name: string;
-  description: string;
+  brand: string;
+  price: string;
   link: string;
 };
 
@@ -59,9 +60,14 @@ export default function AnswerBox({ isLoading, response, products }: AnswerBoxPr
         {products && products.length > 0 && (
             <div className={cn("space-y-3", response && "mt-4")}>
                 {products.map((product, index) => (
-                    <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
-                        <p className="font-semibold text-primary">{product.name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
+                    <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+                        <div className="flex justify-between items-start gap-4">
+                            <div>
+                                <p className="font-semibold text-primary">{product.name}</p>
+                                <p className="text-sm text-muted-foreground">{product.brand}</p>
+                            </div>
+                            <p className="font-bold text-lg text-right whitespace-nowrap">{product.price}</p>
+                        </div>
                     </a>
                 ))}
             </div>

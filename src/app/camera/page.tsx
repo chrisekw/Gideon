@@ -9,14 +9,15 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
 import { findProducts } from '@/ai/flows/find-products';
-import { Loader2, Camera, ArrowLeft, RefreshCw, Sparkles, ShoppingBag } from 'lucide-react';
+import { Loader2, Camera, ArrowLeft, RefreshCw, Sparkles, ShoppingBag, Menu } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import AnswerBox from '@/components/gideon/answer-box';
 import { Textarea } from '@/components/ui/textarea';
 
 type Product = {
   name: string;
-  description: string;
+  brand: string;
+  price: string;
   link: string;
 };
 
