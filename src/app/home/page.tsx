@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { generateImageDescription } from '@/ai/flows/generate-image-description';
-import { Camera, Loader2, Sparkles, Upload, X, Bot } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Upload, X } from 'lucide-react';
 import AnswerBox from '@/components/gideon/answer-box';
 
 export default function HomePage() {
@@ -85,12 +85,9 @@ export default function HomePage() {
     <div className="w-full max-w-4xl flex-1 flex flex-col container p-4 md:p-8">
       {!imagePreview ? (
         <div className="flex flex-col items-center justify-center text-center gap-8 flex-1">
-          <div className='flex items-center gap-4 text-primary'>
-             <Bot className="h-16 w-16" />
-             <div>
-                <h2 className='text-4xl font-bold tracking-tighter'>GIDEON</h2>
-                <p className='text-muted-foreground text-lg text-left'>Snap. Ask. Discover.</p>
-              </div>
+          <div className="text-center">
+            <h2 className='text-5xl font-bold tracking-tighter text-primary'>GIDEON</h2>
+            <p className='text-muted-foreground text-xl mt-2'>Snap. Ask. Discover.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <Button size="lg" onClick={() => fileInputRef.current?.click()}>

@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/sidebar';
 import SidebarNav from '@/components/gideon/sidebar-nav';
 import React from 'react';
-import { Bot } from 'lucide-react';
 
 
 export default function RootLayout({
@@ -30,12 +29,9 @@ export default function RootLayout({
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-3 p-3">
-              <Bot className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-bold tracking-tighter text-primary">GIDEON</h1>
-                <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover.</p>
-              </div>
+            <div className="p-3 text-center">
+              <h1 className="text-xl font-bold tracking-tighter text-primary">GIDEON</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover</p>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -44,10 +40,7 @@ export default function RootLayout({
         </Sidebar>
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-             <div className="flex items-center gap-3">
-              <Bot className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight">GIDEON</h1>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary">GIDEON</h1>
             <SidebarTrigger />
           </header>
           <main className="flex flex-1 flex-col items-center">
