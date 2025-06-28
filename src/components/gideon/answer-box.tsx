@@ -120,7 +120,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   }
   
   return (
-    <Card className="animate-in fade-in duration-500">
+    <Card className="animate-in fade-in duration-500 bg-background/80 backdrop-blur-sm">
       <CardHeader>
         <div className="flex justify-between items-start">
             <CardTitle className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
         </div>
         {isShopping && response && <p className="text-sm text-muted-foreground pt-1">{response}</p>}
       </CardHeader>
-      <CardContent className={cn((isHomework || isShopping) && "overflow-y-auto max-h-[60vh]")}>
+      <CardContent className={cn((isHomework || isShopping) && "overflow-y-auto max-h-[45vh]")}>
         {isHomework ? (
           <div className="space-y-4">
             {preamble && <p className="text-sm text-muted-foreground italic">"{preamble}"</p>}

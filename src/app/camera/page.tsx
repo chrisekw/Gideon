@@ -194,38 +194,38 @@ export default function CameraPage() {
   }, [toast, question]);
 
   const handleToggleTorch = useCallback(async () => {
-    if (streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack && 'getCapabilities' in videoTrack) {
-        try {
-          // @ts-ignore - torch is a valid constraint but not in all TS lib versions
-          const capabilities = videoTrack.getCapabilities();
-          if (capabilities.torch) {
-            const newTorchState = !isTorchOn;
-            await videoTrack.applyConstraints({
-              advanced: [{ torch: newTorchState }],
-            });
-            setIsTorchOn(newTorchState);
-          } else {
-            toast({
-              title: "Flashlight Not Supported",
-              description: "Your device or browser does not support controlling the flashlight.",
-            });
-          }
-        } catch (error) {
-          console.error("Error toggling torch:", error);
+    if (!streamRef.current) return;
+
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (videoTrack && 'getCapabilities' in videoTrack) {
+      try {
+        // @ts-ignore - torch is a valid constraint but not in all TS lib versions
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.torch) {
+          const newTorchState = !isTorchOn;
+          await videoTrack.applyConstraints({
+            advanced: [{ torch: newTorchState }],
+          });
+          setIsTorchOn(newTorchState);
+        } else {
           toast({
-            variant: 'destructive',
-            title: 'Flashlight Error',
-            description: 'Could not toggle the flashlight. Please try again.',
+            title: "Flashlight Not Supported",
+            description: "Your device or browser does not support controlling the flashlight.",
           });
         }
-      } else {
+      } catch (error) {
+        console.error("Error toggling torch:", error);
         toast({
-            title: "Flashlight Not Available",
-            description: "Cannot access flashlight controls.",
+          variant: 'destructive',
+          title: 'Flashlight Error',
+          description: error instanceof Error ? error.message : 'Could not toggle the flashlight.',
         });
       }
+    } else {
+      toast({
+          title: "Flashlight Not Available",
+          description: "Cannot access flashlight controls.",
+      });
     }
   }, [isTorchOn, toast]);
 
@@ -254,18 +254,7 @@ export default function CameraPage() {
     
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          // Turn off torch before stopping the track
-          if (track.kind === 'video' && 'getCapabilities' in track) {
-            // @ts-ignore
-            const capabilities = track.getCapabilities();
-            if (capabilities.torch) {
-              // @ts-ignore
-              track.applyConstraints({ advanced: [{ torch: false }] });
-            }
-          }
-          track.stop();
-        });
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, [toast]);
@@ -369,7 +358,7 @@ export default function CameraPage() {
               </div>
             ) : (
                <div className='w-full space-y-3'>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="flex flex-wrap justify-center gap-2">
                     <ActionButton onClick={resetCapture} action="retake" icon={<RefreshCw className="mr-2 h-4 w-4" />}>Retake</ActionButton>
                     <ActionButton onClick={() => handleFindProducts(imageData)} action="find" icon={<ShoppingBag className="mr-2 h-4 w-4" />}>Shop</ActionButton>
                     <ActionButton onClick={() => handleSolveHomework(imageData)} action="solve" icon={<Calculator className="mr-2 h-4 w-4" />}>Solve</ActionButton>
