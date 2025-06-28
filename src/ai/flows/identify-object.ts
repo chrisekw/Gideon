@@ -17,6 +17,8 @@ const IdentifyObjectInputSchema = z.object({
     .describe(
       "A photo of an object, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  latitude: z.number().optional().describe("The user's latitude."),
+  longitude: z.number().optional().describe("The user's longitude."),
 });
 export type IdentifyObjectInput = z.infer<typeof IdentifyObjectInputSchema>;
 
@@ -48,16 +50,17 @@ const identificationPrompt = ai.definePrompt({
 1.  **Categorize**: First, determine the primary category of the image subject: Is it a plant, animal, landmark, or a general object?
 2.  **Analyze**: Based on the category, perform a specialized analysis.
     *   **If it's a plant or animal**: Use your knowledge base to find its species name.
-    *   **If it's a landmark**: Identify its name and try to infer the location (city, country) from visual clues.
+    *   **If it's a landmark**: Identify its name. If latitude and longitude are provided, use them as a strong hint to improve the accuracy of your identification.
     *   **If it's a general object**: Identify the object and its purpose.
 3.  **Synthesize & Explain**: Combine all the information you've gathered into a comprehensive response.
     *   Provide the primary identification.
     *   Write a detailed description. If it's a plant, include care tips. If it's a landmark, include interesting facts.
-    *   If you identified a location, state it clearly.
+    *   If you identified a location, state it clearly. Use the provided coordinates to refine the location if available.
 4.  **Provide Sources**: Find 1-2 relevant, high-quality links for more information, such as a Wikipedia page, an official website, or a Google Maps link.
 
 Format your response strictly according to the output schema.
 
+{{#if latitude}}User's Location: Latitude {{latitude}}, Longitude {{longitude}}{{/if}}
 Image: {{media url=photoDataUri}}`,
 });
 

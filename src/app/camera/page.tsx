@@ -51,7 +51,8 @@ export default function CameraPage() {
   const [answerTitle, setAnswerTitle] = useState('');
   const [answerIcon, setAnswerIcon] = useState(<Sparkles className="h-5 w-5 text-primary" />);
   const [isTorchOn, setIsTorchOn] = useState(false);
-  
+  const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -78,7 +79,10 @@ export default function CameraPage() {
         setAiResponse(result.answer);
       } else {
         // Default action is now to identify the object
-        const result = await identifyObject({ photoDataUri: data });
+        const result = await identifyObject({ 
+            photoDataUri: data,
+            ...(location && { latitude: location.latitude, longitude: location.longitude })
+        });
         let responseText = `${result.identification}\n\n${result.description}`;
         if (result.location) {
           responseText += `\n\n**Location:** ${result.location}`;
@@ -98,7 +102,7 @@ export default function CameraPage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast]);
+  }, [toast, location]);
   
   const handleFindProducts = useCallback(async (data: string) => {
     setIsAnalyzing(true);
@@ -154,7 +158,10 @@ export default function CameraPage() {
     setAnswerTitle('Identification');
     setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
     try {
-      const result = await identifyObject({ photoDataUri: data });
+      const result = await identifyObject({ 
+          photoDataUri: data,
+          ...(location && { latitude: location.latitude, longitude: location.longitude })
+      });
       let responseText = `${result.identification}\n\n${result.description}`;
       if (result.location) {
         responseText += `\n\n**Location:** ${result.location}`;
@@ -169,7 +176,7 @@ export default function CameraPage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast]);
+  }, [toast, location]);
   
   const handleExtractText = useCallback(async (data: string) => {
     if (!question.trim()) {
@@ -229,35 +236,56 @@ export default function CameraPage() {
     }
   }, [isTorchOn, toast]);
 
+  const startCamera = useCallback(async () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast({ variant: 'destructive', title: 'Camera not supported' });
+      setHasCameraPermission(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      setHasCameraPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      setHasCameraPermission(false);
+      toast({ variant: 'destructive', title: 'Camera Access Denied' });
+    }
+  }, [toast]);
 
   useEffect(() => {
-    const getCameraPermission = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({ variant: 'destructive', title: 'Camera not supported' });
-        setHasCameraPermission(false);
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        streamRef.current = stream;
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+    startCamera();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: "Could not get your location. Identification may be less accurate for landmarks.",
+          });
         }
-      } catch (error) {
-        setHasCameraPermission(false);
-        toast({ variant: 'destructive', title: 'Camera Access Denied' });
-      }
-    };
-    
-    getCameraPermission();
+      );
+    }
     
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [toast]);
+  }, [startCamera, toast]);
 
   const handleSnap = () => {
     if (videoRef.current && canvasRef.current) {
@@ -272,17 +300,21 @@ export default function CameraPage() {
         setImageData(dataUrl);
         handleAnalysis(dataUrl, '');
 
-        if (streamRef.current && isTorchOn) {
-          const videoTrack = streamRef.current.getVideoTracks()[0];
-          // @ts-ignore
-          if (videoTrack && 'getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
-            try {
-              videoTrack.applyConstraints({ advanced: [{ torch: false }] });
-              setIsTorchOn(false);
-            } catch (e) {
-              console.error("Failed to turn off torch", e);
+        if (streamRef.current) {
+          if (isTorchOn) {
+            const videoTrack = streamRef.current.getVideoTracks()[0];
+            // @ts-ignore
+            if (videoTrack && 'getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
+              try {
+                videoTrack.applyConstraints({ advanced: [{ torch: false }] });
+                setIsTorchOn(false);
+              } catch (e) {
+                console.error("Failed to turn off torch", e);
+              }
             }
           }
+          // Stop all camera tracks
+          streamRef.current.getTracks().forEach(track => track.stop());
         }
       }
     }
@@ -298,6 +330,7 @@ export default function CameraPage() {
     resetAiState();
     setQuestion('');
     setCurrentAction(null);
+    startCamera();
   };
 
   const ActionButton = ({ onClick, action, icon, children }: { onClick: () => void, action: string, icon: React.ReactNode, children: React.ReactNode }) => (

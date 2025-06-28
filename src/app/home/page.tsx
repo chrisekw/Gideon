@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -59,8 +59,30 @@ export default function HomePage() {
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [answerTitle, setAnswerTitle] = useState('');
   const [answerIcon, setAnswerIcon] = useState(<Sparkles className="h-5 w-5 text-primary" />);
+  const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: "Could not get your location. Identification may be less accurate for landmarks.",
+          });
+        }
+      );
+    }
+  }, [toast]);
 
   const resetAiState = () => {
     setAiResponse('');
@@ -83,7 +105,10 @@ export default function HomePage() {
         setAiResponse(result.answer);
       } else {
         // Default action is now to identify the object
-        const result = await identifyObject({ photoDataUri: data });
+        const result = await identifyObject({ 
+            photoDataUri: data,
+            ...(location && { latitude: location.latitude, longitude: location.longitude })
+        });
         let responseText = `${result.identification}\n\n${result.description}`;
         if (result.location) {
           responseText += `\n\n**Location:** ${result.location}`;
@@ -103,7 +128,7 @@ export default function HomePage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast]);
+  }, [toast, location]);
   
   const handleFindProducts = useCallback(async (data: string) => {
     setIsAnalyzing(true);
@@ -159,7 +184,10 @@ export default function HomePage() {
     setAnswerTitle('Identification');
     setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
     try {
-      const result = await identifyObject({ photoDataUri: data });
+      const result = await identifyObject({ 
+        photoDataUri: data,
+        ...(location && { latitude: location.latitude, longitude: location.longitude })
+      });
       let responseText = `${result.identification}\n\n${result.description}`;
       if (result.location) {
         responseText += `\n\n**Location:** ${result.location}`;
@@ -174,7 +202,7 @@ export default function HomePage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast]);
+  }, [toast, location]);
   
   const handleExtractText = useCallback(async (data: string) => {
     if (!question.trim()) {
