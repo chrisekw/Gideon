@@ -73,11 +73,23 @@ export default function HomePage() {
           });
         },
         (error) => {
-          console.error("Geolocation error:", error);
+          console.error("Geolocation error:", error.message);
+          let description = "Could not get your location. Identification may be less accurate for landmarks.";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              description = "Location access was denied. Please enable it in browser settings for better landmark identification.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              description = "Location information is unavailable. Please check your device's location settings.";
+              break;
+            case error.TIMEOUT:
+              description = "The request to get user location timed out.";
+              break;
+          }
           toast({
             variant: "destructive",
             title: "Location Error",
-            description: "Could not get your location. Identification may be less accurate for landmarks.",
+            description: description,
           });
         }
       );
