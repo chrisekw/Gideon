@@ -201,39 +201,56 @@ export default function CameraPage() {
   }, [toast, question]);
 
   const handleToggleTorch = useCallback(async () => {
-    if (!streamRef.current) return;
+    if (!streamRef.current) {
+      toast({ title: "Camera not ready", description: "The camera stream is not available yet." });
+      return;
+    }
 
     const videoTrack = streamRef.current.getVideoTracks()[0];
-    // Add readyState check for robustness
-    if (videoTrack && videoTrack.readyState === 'live' && 'getCapabilities' in videoTrack) {
-      try {
-        // @ts-ignore - torch is a valid constraint but not in all TS lib versions
-        const capabilities = videoTrack.getCapabilities();
-        if (capabilities.torch) {
-          const newTorchState = !isTorchOn;
-          await videoTrack.applyConstraints({
-            advanced: [{ torch: newTorchState }],
-          });
-          setIsTorchOn(newTorchState);
-        } else {
-          toast({
-            title: "Flashlight Not Supported",
-            description: "Your device or browser does not support controlling the flashlight.",
-          });
-        }
-      } catch (error) {
-        console.error("Error toggling torch:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Flashlight Error',
-          description: error instanceof Error ? error.message : 'Could not toggle the flashlight.',
-        });
+    if (!videoTrack || videoTrack.readyState !== 'live') {
+      toast({ title: "Camera not ready", description: "The camera track is not active." });
+      return;
+    }
+
+    if (!('getCapabilities' in videoTrack)) {
+      toast({ title: "Flashlight Not Supported", description: "Your browser does not support this feature." });
+      return;
+    }
+
+    try {
+      // @ts-ignore
+      const capabilities = videoTrack.getCapabilities();
+      if (!capabilities.torch) {
+        toast({ title: "Flashlight Not Supported", description: "Your device does not have a flashlight or the browser cannot control it." });
+        return;
       }
-    } else {
-      toast({
-          title: "Flashlight Not Available",
-          description: "Cannot access flashlight controls. The camera track might be inactive.",
+
+      const newTorchState = !isTorchOn;
+      await videoTrack.applyConstraints({
+        advanced: [{ torch: newTorchState }],
       });
+      setIsTorchOn(newTorchState);
+    } catch (error) {
+      console.error("Error toggling torch:", error);
+      let title = "Flashlight Error";
+      let description = "An unexpected error occurred while trying to control the flashlight.";
+      
+      if (error instanceof DOMException) {
+          if (error.name === 'NotSupportedError' || error.message.toLowerCase().includes('setphotooptions failed')) {
+              title = "Flashlight Not Supported";
+              description = "This feature is not supported by your device or browser. Please try updating your browser.";
+          } else if (error.name === 'OverconstrainedError') {
+              title = "Flashlight Conflict";
+              description = "The camera cannot be configured with the flashlight on. Another app might be using the camera.";
+          } else {
+              description = `Camera error: ${error.name}`;
+          }
+      } else if (error instanceof Error) {
+        description = error.message;
+      }
+      
+      toast({ variant: 'destructive', title, description });
+      setIsTorchOn(false);
     }
   }, [isTorchOn, toast]);
 
