@@ -271,6 +271,19 @@ export default function CameraPage() {
         const dataUrl = canvas.toDataURL('image/jpeg');
         setImageData(dataUrl);
         handleAnalysis(dataUrl, '');
+
+        if (streamRef.current && isTorchOn) {
+          const videoTrack = streamRef.current.getVideoTracks()[0];
+          // @ts-ignore
+          if (videoTrack && 'getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
+            try {
+              videoTrack.applyConstraints({ advanced: [{ torch: false }] });
+              setIsTorchOn(false);
+            } catch (e) {
+              console.error("Failed to turn off torch", e);
+            }
+          }
+        }
       }
     }
   };
@@ -343,9 +356,9 @@ export default function CameraPage() {
             />
           )}
           
-          <div className="flex items-center justify-center gap-4 h-20">
+          <div className="flex items-end justify-center gap-4">
             {!imageData ? (
-              <div className="relative w-full flex justify-center items-center">
+              <div className="relative w-full flex justify-center items-center h-20">
                 <Button onClick={handleSnap} size="lg" className="w-20 h-20 rounded-full !p-0">
                   <Camera className="h-8 w-8" />
                 </Button>
@@ -358,7 +371,7 @@ export default function CameraPage() {
               </div>
             ) : (
                <div className='w-full space-y-3'>
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <ActionButton onClick={resetCapture} action="retake" icon={<RefreshCw className="mr-2 h-4 w-4" />}>Retake</ActionButton>
                     <ActionButton onClick={() => handleFindProducts(imageData)} action="find" icon={<ShoppingBag className="mr-2 h-4 w-4" />}>Shop</ActionButton>
                     <ActionButton onClick={() => handleSolveHomework(imageData)} action="solve" icon={<Calculator className="mr-2 h-4 w-4" />}>Solve</ActionButton>
