@@ -30,7 +30,7 @@ export default function RootLayout({
         <Sidebar>
           <SidebarHeader>
             <div className="p-3 text-center">
-              <h1 className="text-xl font-bold tracking-tighter text-primary">GIDEON</h1>
+              <h1 className="text-xl font-bold tracking-tighter text-primary">GiDEON</h1>
               <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover</p>
             </div>
           </SidebarHeader>
@@ -40,7 +40,7 @@ export default function RootLayout({
         </Sidebar>
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-            <h1 className="text-2xl font-bold tracking-tight text-primary">GIDEON</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-primary">GiDEON</h1>
             <SidebarTrigger />
           </header>
           <main className="flex flex-1 flex-col items-center">
@@ -53,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>GIDEON</title>
+        <title>GiDEON</title>
         <meta name="description" content="Your intelligent image analysis assistant." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

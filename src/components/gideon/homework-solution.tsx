@@ -48,7 +48,7 @@ export default function HomeworkSolution({ solution }: HomeworkSolutionProps) {
         <h4 className="font-semibold">Step-by-step Solution</h4>
         
         <div className="p-4 rounded-lg bg-secondary/50 min-h-[6rem]">
-          <div className="flex-grow text-sm leading-relaxed">
+          <div className="flex-grow text-sm leading-relaxed whitespace-pre-wrap">
             {steps.length > 0 ? renderWithMarkdown(steps[currentStep].replace(/^\d+\.\s*/, '')) : "No solution steps provided."}
           </div>
         </div>

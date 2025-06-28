@@ -12,6 +12,7 @@ import { findProducts } from '@/ai/flows/find-products';
 import { solveHomework } from '@/ai/flows/solve-homework';
 import { identifyObject } from '@/ai/flows/identify-object';
 import { extractText } from '@/ai/flows/extract-text';
+import { motion } from 'framer-motion';
 import {
   Camera,
   Loader2,
@@ -245,11 +246,21 @@ export default function HomePage() {
     <div className="w-full max-w-4xl flex-1 flex flex-col container p-4 md:p-8">
       {!imagePreview ? (
         <div className="flex flex-col items-center justify-center text-center gap-6 flex-1 py-8">
-          <div className="text-center">
-            <h2 className='text-5xl font-bold tracking-tighter'>GIDEON</h2>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <h2 className='text-5xl font-bold tracking-tighter'>GiDEON</h2>
             <p className='text-muted-foreground text-xl mt-2'>Snap. Ask. Discover.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4">
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex flex-col sm:flex-row gap-4"
+          >
             <Button size="lg" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2" />
               Upload Image
@@ -260,7 +271,7 @@ export default function HomePage() {
                 Use Camera
               </Link>
             </Button>
-          </div>
+          </motion.div>
           <input
             type="file"
             ref={fileInputRef}
