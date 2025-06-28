@@ -60,7 +60,7 @@ For each product you find, you must return:
 - A direct, working URL to the product page.
 - A direct, working URL for the product's image.
 
-**Crucially, only return results you are highly confident about. Do not invent links or image URLs.** If you find no confident matches, return an empty list of products.
+**It is crucial that you return real, working links. Do not invent links or image URLs.** Your primary goal is to find at least one valid product. Do not return an empty list unless you are absolutely certain no matches can be found.
 
 Image: {{media url=photoDataUri}}`,
 });

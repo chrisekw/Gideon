@@ -7,12 +7,11 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Home, History, Settings } from 'lucide-react';
+import { Home, History } from 'lucide-react';
 
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/history', label: 'History', icon: History },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function SidebarNav() {
