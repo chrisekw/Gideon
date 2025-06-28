@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that finds products in an image and provides shopping links.
@@ -23,8 +24,8 @@ const ProductSchema = z.object({
     name: z.string().describe("The product's title or name."),
     brand: z.string().describe('The brand of the product.'),
     price: z.string().describe('The price of the product, including currency symbol (e.g., $, €).'),
-    link: z.string().url().describe('A direct, valid, and working shopping link for the product. Do not guess or make up a URL.'),
-    imageUrl: z.string().url().describe("A direct, valid, and working URL for the product's image. Do not guess or make up a URL."),
+    link: z.string().describe('A direct, valid, and working shopping link for the product. Do not guess or make up a URL.'),
+    imageUrl: z.string().describe("A direct, valid, and working URL for the product's image. Do not guess or make up a URL."),
 });
 
 const FindProductsOutputSchema = z.object({
