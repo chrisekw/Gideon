@@ -204,7 +204,8 @@ export default function CameraPage() {
     if (!streamRef.current) return;
 
     const videoTrack = streamRef.current.getVideoTracks()[0];
-    if (videoTrack && 'getCapabilities' in videoTrack) {
+    // Add readyState check for robustness
+    if (videoTrack && videoTrack.readyState === 'live' && 'getCapabilities' in videoTrack) {
       try {
         // @ts-ignore - torch is a valid constraint but not in all TS lib versions
         const capabilities = videoTrack.getCapabilities();
@@ -231,7 +232,7 @@ export default function CameraPage() {
     } else {
       toast({
           title: "Flashlight Not Available",
-          description: "Cannot access flashlight controls.",
+          description: "Cannot access flashlight controls. The camera track might be inactive.",
       });
     }
   }, [isTorchOn, toast]);
@@ -309,25 +310,27 @@ export default function CameraPage() {
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg');
-        setImageData(dataUrl);
-        handleAnalysis(dataUrl, '');
-
+        
+        // Turn off torch and stop stream BEFORE updating state to prevent race conditions
         if (streamRef.current) {
-          if (isTorchOn) {
-            const videoTrack = streamRef.current.getVideoTracks()[0];
-            // @ts-ignore
-            if (videoTrack && 'getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
-              try {
+          const videoTrack = streamRef.current.getVideoTracks()[0];
+          if (isTorchOn && videoTrack && videoTrack.readyState === 'live') {
+            try {
+              // @ts-ignore
+              if ('getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
                 videoTrack.applyConstraints({ advanced: [{ torch: false }] });
                 setIsTorchOn(false);
-              } catch (e) {
-                console.error("Failed to turn off torch", e);
               }
+            } catch (e) {
+                console.error("Failed to turn off torch during snap:", e);
             }
           }
           // Stop all camera tracks
           streamRef.current.getTracks().forEach(track => track.stop());
         }
+
+        setImageData(dataUrl);
+        handleAnalysis(dataUrl, '');
       }
     }
   };
