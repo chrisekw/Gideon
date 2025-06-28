@@ -30,6 +30,7 @@ type Product = {
   brand: string;
   price: string;
   link: string;
+  imageUrl: string;
 };
 
 type Source = {
@@ -115,6 +116,7 @@ export default function HomePage() {
         setProducts(result.products);
         setAiResponse(`I found ${result.products.length} product(s) in the image.`);
       } else {
+        setProducts([]);
         setAiResponse("I couldn't find any products in the image.");
       }
     } catch (error) {

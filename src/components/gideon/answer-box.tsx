@@ -17,6 +17,7 @@ type Product = {
   brand: string;
   price: string;
   link: string;
+  imageUrl: string;
 };
 
 type Source = {
@@ -111,6 +112,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   }
   
   const isHomework = title === 'Homework Solution' && homeworkSolutions && homeworkSolutions.length > 0;
+  const isShopping = title === 'Products Found' && products;
   const hasContent = response || imageUrl || (products && products.length > 0) || (sources && sources.length > 0) || isHomework;
   
   if (!hasContent) {
@@ -125,15 +127,16 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             {icon}
             {title}
             </CardTitle>
-            {(response || isHomework) && !isLoading && (
+            {(response || isHomework) && !isLoading && !isShopping && (
                 <Button onClick={handleSpeak} variant="ghost" size="icon" disabled={isSpeaking} className="shrink-0">
                     {isSpeaking ? <Loader2 className="h-5 w-5 animate-spin" /> : <Volume2 className="h-5 w-5" />}
                     <span className="sr-only">Speak</span>
                 </Button>
             )}
         </div>
+        {isShopping && response && <p className="text-sm text-muted-foreground pt-1">{response}</p>}
       </CardHeader>
-      <CardContent className={cn(isHomework && "overflow-y-auto max-h-[60vh]")}>
+      <CardContent className={cn((isHomework || isShopping) && "overflow-y-auto max-h-[60vh]")}>
         {isHomework ? (
           <div className="space-y-4">
             {preamble && <p className="text-sm text-muted-foreground italic">"{preamble}"</p>}
@@ -160,7 +163,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                 <Image src={imageUrl} alt="AI generated visual aid" fill className="object-contain" />
               </div>
             )}
-            {response && (
+            {response && !isShopping && (
                 <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                     {response}
                 </div>
@@ -168,17 +171,23 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             {products && products.length > 0 && (
                 <div className={cn("space-y-3", (response || imageUrl) && "mt-4")}>
                     {products.map((product, index) => (
-                        <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
-                            <div className="flex justify-between items-start gap-4">
-                                <div>
-                                    <p className="font-semibold text-primary">{product.name}</p>
-                                    <p className="text-sm text-muted-foreground">{product.brand}</p>
-                                </div>
-                                <p className="font-bold text-lg text-right whitespace-nowrap">{product.price}</p>
-                            </div>
-                        </a>
+                      <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+                          <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border">
+                              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+                          </div>
+                          <div className="flex-grow">
+                              <p className="font-semibold text-primary line-clamp-2">{product.name}</p>
+                              <p className="text-sm text-muted-foreground">{product.brand}</p>
+                          </div>
+                          <p className="font-bold text-lg text-right whitespace-nowrap self-start">{product.price}</p>
+                      </a>
                     ))}
                 </div>
+            )}
+             {products && products.length === 0 && (
+              <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                {response}
+              </div>
             )}
             {sources && sources.length > 0 && (
                 <div className={cn("space-y-3", (response || imageUrl || (products && products.length > 0)) && "mt-4")}>

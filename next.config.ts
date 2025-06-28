@@ -13,8 +13,26 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ebayimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ae01.alicdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.kwcdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ng.jumia.is',
       },
     ],
   },
