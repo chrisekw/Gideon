@@ -41,25 +41,26 @@ const prompt = ai.definePrompt({
   name: 'findProductsPrompt',
   input: {schema: FindProductsInputSchema},
   output: {schema: FindProductsOutputSchema},
-  prompt: `You are a world-class AI personal shopper that simulates scraping and searching e-commerce websites and official brand sites. Your mission is to find the exact product from a user's image, searching across the internet to provide accurate shopping options.
+  prompt: `You are an expert visual search AI. Your task is to identify the product in the provided image and find it for sale online.
 
-**Your Process:**
+Analyze the image and find purchase links for the main product shown.
 
-1.  **Image Analysis**: Meticulously analyze the user's image. Identify the main product, noting every visual detail: brand, logos, text, color, material, shape, and unique features.
-2.  **Query Generation**: Based on your analysis, generate several powerful search keywords.
-    *   **If the image is blurry or of poor quality:** Use your reasoning to infer the user's intent. Generate broader, more descriptive queries to overcome the visual ambiguity.
-    *   **For all images:** Create variations of keywords, including synonyms and potential misspellings to ensure a comprehensive search (fuzzy matching).
-3.  **Simulated Web Search**: Using your vast internal knowledge, simulate searching for the product across the web. Prioritize the following sources:
-    *   **Official Brand/Product Website**: If you can identify the brand, first try to find the official product page on the brand's own website for direct purchase.
-    *   **Major E-commerce Retailers**: Also search on Amazon.com, AliExpress.com, Temu.com, Jumia.ng, and eBay.com.
-    You should act as if you are scraping these sites for the most relevant product listings.
-4.  **Verification & Sorting**: Critically evaluate the simulated search results.
-    *   **Visual Similarity**: Prioritize results that are a strong visual match to the item in the user's photo.
-    *   **Textual Match**: Ensure the product title and description align with your analysis.
-    *   **Filter out irrelevant items.**
-5.  **Format Output**: For the top matching products, provide the product name, brand, price (with currency), a direct, valid shopping link, and the product's image URL as specified in the output schema. **It is critical that you do not invent or guess URLs.** Only provide links you are highly confident are correct from your training data.
+You MUST search the following websites for the product:
+- Amazon.com
+- AliExpress.com
+- Temu.com
+- Jumia.ng
+- eBay.com
+- The official brand website, if identifiable.
 
-If you cannot find any high-confidence matches, return an empty array.
+For each product you find, you must return:
+- The product's name.
+- The product's brand.
+- The price, with currency.
+- A direct, working URL to the product page.
+- A direct, working URL for the product's image.
+
+**Crucially, only return results you are highly confident about. Do not invent links or image URLs.** If you find no confident matches, return an empty list of products.
 
 Image: {{media url=photoDataUri}}`,
 });
