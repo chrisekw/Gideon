@@ -11,10 +11,11 @@ import { findProducts } from '@/ai/flows/find-products';
 import { solveHomework } from '@/ai/flows/solve-homework';
 import { identifyObject } from '@/ai/flows/identify-object';
 import { extractText } from '@/ai/flows/extract-text';
-import { Loader2, Camera, ArrowLeft, RefreshCw, Sparkles, ShoppingBag, Calculator, Leaf, ScanText } from 'lucide-react';
+import { Loader2, Camera, ArrowLeft, RefreshCw, Sparkles, ShoppingBag, Calculator, Leaf, ScanText, Zap } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import AnswerBox from '@/components/gideon/answer-box';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type Product = {
   name: string;
@@ -49,6 +50,7 @@ export default function CameraPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [answerTitle, setAnswerTitle] = useState('');
   const [answerIcon, setAnswerIcon] = useState(<Sparkles className="h-5 w-5 text-primary" />);
+  const [isTorchOn, setIsTorchOn] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -191,6 +193,42 @@ export default function CameraPage() {
     }
   }, [toast, question]);
 
+  const handleToggleTorch = useCallback(async () => {
+    if (streamRef.current) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      if (videoTrack && 'getCapabilities' in videoTrack) {
+        try {
+          // @ts-ignore - torch is a valid constraint but not in all TS lib versions
+          const capabilities = videoTrack.getCapabilities();
+          if (capabilities.torch) {
+            const newTorchState = !isTorchOn;
+            await videoTrack.applyConstraints({
+              advanced: [{ torch: newTorchState }],
+            });
+            setIsTorchOn(newTorchState);
+          } else {
+            toast({
+              title: "Flashlight Not Supported",
+              description: "Your device or browser does not support controlling the flashlight.",
+            });
+          }
+        } catch (error) {
+          console.error("Error toggling torch:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Flashlight Error',
+            description: 'Could not toggle the flashlight. Please try again.',
+          });
+        }
+      } else {
+        toast({
+            title: "Flashlight Not Available",
+            description: "Cannot access flashlight controls.",
+        });
+      }
+    }
+  }, [isTorchOn, toast]);
+
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -216,7 +254,18 @@ export default function CameraPage() {
     
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          // Turn off torch before stopping the track
+          if (track.kind === 'video' && 'getCapabilities' in track) {
+            // @ts-ignore
+            const capabilities = track.getCapabilities();
+            if (capabilities.torch) {
+              // @ts-ignore
+              track.applyConstraints({ advanced: [{ torch: false }] });
+            }
+          }
+          track.stop();
+        });
       }
     };
   }, [toast]);
@@ -305,11 +354,19 @@ export default function CameraPage() {
             />
           )}
           
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 h-20">
             {!imageData ? (
-              <Button onClick={handleSnap} size="lg" className="w-20 h-20 rounded-full !p-0">
-                <Camera className="h-8 w-8" />
-              </Button>
+              <div className="relative w-full flex justify-center items-center">
+                <Button onClick={handleSnap} size="lg" className="w-20 h-20 rounded-full !p-0">
+                  <Camera className="h-8 w-8" />
+                </Button>
+                <div className="absolute right-0">
+                  <Button onClick={handleToggleTorch} variant="ghost" size="icon" className="w-16 h-16 rounded-full bg-black/30 hover:bg-black/50">
+                    <Zap className={cn("h-6 w-6 text-white", isTorchOn && "fill-yellow-300 text-yellow-400")} />
+                    <span className="sr-only">Toggle Flashlight</span>
+                  </Button>
+                </div>
+              </div>
             ) : (
                <div className='w-full space-y-3'>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
