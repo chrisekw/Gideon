@@ -23,7 +23,7 @@ const ProductSchema = z.object({
     name: z.string().describe("The product's title or name."),
     brand: z.string().describe('The brand of the product.'),
     price: z.string().describe('The price of the product, including currency symbol (e.g., $, €).'),
-    link: z.string().describe('A direct shopping link for the product.'),
+    link: z.string().describe('A direct, valid, and working shopping link for the product. Do not guess or make up a URL.'),
 });
 
 const FindProductsOutputSchema = z.object({
@@ -52,7 +52,7 @@ const prompt = ai.definePrompt({
     *   **Visual Similarity**: Prioritize results that are a strong visual match to the item in the user's photo.
     *   **Textual Match**: Ensure the product title and description align with your analysis.
     *   **Filter out irrelevant items.**
-5.  **Format Output**: For the top matching products, provide the product name, brand, price (with currency), and a direct, valid shopping link as specified in the output schema.
+5.  **Format Output**: For the top matching products, provide the product name, brand, price (with currency), and a direct, valid shopping link as specified in the output schema. **It is critical that you do not invent or guess URLs.** Only provide links you are highly confident are correct from your training data.
 
 If you cannot find any high-confidence matches, return an empty array.
 

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
-import { generateImageDescription } from '@/ai/flows/generate-image-description';
 import { findProducts } from '@/ai/flows/find-products';
 import { solveHomework } from '@/ai/flows/solve-homework';
 import { identifyObject } from '@/ai/flows/identify-object';
@@ -81,8 +80,15 @@ export default function HomePage() {
         const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
         setAiResponse(result.answer);
       } else {
-        const result = await generateImageDescription({ photoDataUri: data });
-        setAiResponse(result.description);
+        // Default action is now to identify the object
+        const result = await identifyObject({ photoDataUri: data });
+        let responseText = `${result.identification}\n\n${result.description}`;
+        if (result.location) {
+          responseText += `\n\n**Location:** ${result.location}`;
+        }
+        setAiResponse(responseText);
+        setSources(result.sources || null);
+        setImageUrl(result.generatedImageUrl || null);
       }
     } catch (error) {
       console.error('AI call failed:', error);
