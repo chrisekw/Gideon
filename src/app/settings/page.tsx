@@ -1,3 +1,4 @@
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/gideon/theme-switcher";
 import { Separator } from "@/components/ui/separator";
@@ -16,7 +17,7 @@ export default function SettingsPage() {
                 <CardTitle>Settings</CardTitle>
                 <CardDescription>
                     Manage your application settings and preferences.
-                </Description>
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
               <div className="space-y-4">
@@ -51,5 +52,5 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
     </div>
-  )
+  );
 }
