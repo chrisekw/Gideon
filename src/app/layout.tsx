@@ -19,6 +19,7 @@ import {
 import SidebarNav from '@/components/gideon/sidebar-nav';
 import React from 'react';
 import Head from 'next/head';
+import { Bot, LogOut } from 'lucide-react';
 
 const pageMetadata = {
   '/home': {
@@ -59,15 +60,15 @@ export default function RootLayout({
   const metadata = pageMetadata[pathname as keyof typeof pageMetadata] || defaultMetadata;
 
   const AppContent = (
-      <SidebarProvider defaultOpen={false}>
-        <Sidebar variant="floating" collapsible="icon">
+      <SidebarProvider>
+        <Sidebar>
           <SidebarHeader>
-            <div className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tighter text-primary">GiDEON</h1>
-                <p className="text-xs text-muted-foreground mt-0.5 group-data-[state=collapsed]:hidden">Snap. Ask. Discover</p>
-              </div>
-              <SidebarTrigger className="hidden md:flex" />
+            <div className="p-4 flex items-center gap-2">
+                <Bot className="h-8 w-8 text-primary" />
+                <div>
+                    <h1 className="text-xl font-bold tracking-tighter text-primary">GiDEON</h1>
+                    <p className="text-xs text-muted-foreground">v1.0</p>
+                </div>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -79,7 +80,10 @@ export default function RootLayout({
         </Sidebar>
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-            <h1 className="text-2xl font-bold tracking-tight text-primary">GiDEON</h1>
+            <Link href="/home" className="flex items-center gap-2">
+                 <Bot className="h-7 w-7 text-primary" />
+                 <h1 className="text-2xl font-bold tracking-tight text-primary">GiDEON</h1>
+            </Link>
             <SidebarTrigger />
           </header>
           <main className="flex flex-1 flex-col items-center">
