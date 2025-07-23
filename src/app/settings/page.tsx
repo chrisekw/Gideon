@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/gideon/theme-switcher";
 import { Separator } from "@/components/ui/separator";
