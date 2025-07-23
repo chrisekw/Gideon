@@ -70,13 +70,7 @@ export default function CameraPage() {
         const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
         setAiResponse(result.answer);
       } else {
-        setAnswerTitle('Identification');
-        setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
-        const result = await identifyObject({ 
-            photoDataUri: data,
-            ...(location && { latitude: location.latitude, longitude: location.longitude })
-        });
-        setAiResponse(result);
+        await handleIdentifyObject(data, true); // Default action is to identify
       }
     } catch (error) {
       console.error('AI call failed:', error);
@@ -85,11 +79,11 @@ export default function CameraPage() {
         title: 'An error occurred',
         description: 'Failed to get a response from the AI. Please try again.',
       });
-    } finally {
-      setIsAnalyzing(false);
+      setIsAnalyzing(false); // Ensure loader stops on error
       setCurrentAction(null);
     }
-  }, [toast, location]);
+    // `finally` block is removed here because `handleIdentifyObject` has its own `finally`
+  }, [toast]);
   
   const handleFindProducts = useCallback(async (data: string) => {
     setIsAnalyzing(true);
@@ -138,16 +132,58 @@ export default function CameraPage() {
     }
   }, [toast]);
 
-  const handleIdentifyObject = useCallback(async (data: string) => {
-    setIsAnalyzing(true);
-    setCurrentAction('identify');
-    resetAiState();
+  const requestLocation = (): Promise<{ latitude: number, longitude: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Your browser does not support location services.' });
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setLocation(newLocation);
+          resolve(newLocation);
+        },
+        (error) => {
+          let description = "Could not get your location. Identification may be less accurate for landmarks.";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              description = "Location access was denied. Please enable it in browser settings for better landmark identification.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              description = "Location information is unavailable. Please check your device's location settings.";
+              break;
+            case error.TIMEOUT:
+              description = "The request to get user location timed out.";
+              break;
+          }
+          toast({ variant: "destructive", title: "Location Error", description });
+          resolve(null);
+        }
+      );
+    });
+  };
+
+  const handleIdentifyObject = useCallback(async (data: string, fromHandleAnalysis = false) => {
+    // If called from handleAnalysis, don't set loading state again.
+    if (!fromHandleAnalysis) {
+      setIsAnalyzing(true);
+      setCurrentAction('identify');
+      resetAiState();
+    }
     setAnswerTitle('Identification');
     setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
+    
     try {
+      const loc = await requestLocation();
       const result = await identifyObject({ 
           photoDataUri: data,
-          ...(location && { latitude: location.latitude, longitude: location.longitude })
+          ...(loc && { latitude: loc.latitude, longitude: loc.longitude })
       });
       setAiResponse(result);
     } catch (error) {
@@ -157,7 +193,7 @@ export default function CameraPage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast, location]);
+  }, [toast]);
   
   const handleExtractText = useCallback(async (data: string) => {
     if (!question.trim()) {
@@ -193,19 +229,13 @@ export default function CameraPage() {
       return;
     }
 
-    if (!('getCapabilities' in videoTrack)) {
-      toast({ title: "Flashlight Not Supported", description: "Your browser does not support this feature." });
+    // @ts-ignore
+    if (!('getCapabilities' in videoTrack) || !videoTrack.getCapabilities().torch) {
+      toast({ title: "Flashlight Not Supported", description: "Your device or browser does not support this feature." });
       return;
     }
 
     try {
-      // @ts-ignore
-      const capabilities = videoTrack.getCapabilities();
-      if (!capabilities.torch) {
-        toast({ title: "Flashlight Not Supported", description: "Your device does not have a flashlight or the browser cannot control it." });
-        return;
-      }
-
       const newTorchState = !isTorchOn;
       await videoTrack.applyConstraints({
         advanced: [{ torch: newTorchState }],
@@ -217,12 +247,9 @@ export default function CameraPage() {
       let description = "An unexpected error occurred while trying to control the flashlight.";
       
       if (error instanceof DOMException) {
-          if (error.name === 'NotSupportedError' || error.message.toLowerCase().includes('setphotooptions failed')) {
+          if (error.name === 'NotSupportedError' || error.name === 'OverconstrainedError' || error.message.toLowerCase().includes('torch')) {
               title = "Flashlight Not Supported";
               description = "This feature is not supported by your device or browser. Please try updating your browser.";
-          } else if (error.name === 'OverconstrainedError') {
-              title = "Flashlight Conflict";
-              description = "The camera cannot be configured with the flashlight on. Another app might be using the camera.";
           } else {
               description = `Camera error: ${error.name}`;
           }
@@ -259,44 +286,13 @@ export default function CameraPage() {
 
   useEffect(() => {
     startCamera();
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Geolocation error:", error.message);
-          let description = "Could not get your location. Identification may be less accurate for landmarks.";
-           switch (error.code) {
-            case error.PERMISSION_DENIED:
-              description = "Location access was denied. Please enable it in browser settings for better landmark identification.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              description = "Location information is unavailable. Please check your device's location settings.";
-              break;
-            case error.TIMEOUT:
-              description = "The request to get user location timed out.";
-              break;
-          }
-          toast({
-            variant: "destructive",
-            title: "Location Error",
-            description: description,
-          });
-        }
-      );
-    }
     
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [startCamera, toast]);
+  }, [startCamera]);
 
   const handleSnap = () => {
     if (videoRef.current && canvasRef.current) {
@@ -312,13 +308,10 @@ export default function CameraPage() {
         // Turn off torch and stop stream BEFORE updating state to prevent race conditions
         if (streamRef.current) {
           const videoTrack = streamRef.current.getVideoTracks()[0];
-          if (isTorchOn && videoTrack && videoTrack.readyState === 'live') {
+          // @ts-ignore
+          if (isTorchOn && videoTrack && videoTrack.readyState === 'live' && 'getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
             try {
-              // @ts-ignore
-              if ('getCapabilities' in videoTrack && videoTrack.getCapabilities().torch) {
                 videoTrack.applyConstraints({ advanced: [{ torch: false }] });
-                setIsTorchOn(false);
-              }
             } catch (e) {
                 console.error("Failed to turn off torch during snap:", e);
             }
@@ -326,6 +319,7 @@ export default function CameraPage() {
           // Stop all camera tracks
           streamRef.current.getTracks().forEach(track => track.stop());
         }
+        setIsTorchOn(false); // Reset torch state regardless
 
         setImageData(dataUrl);
         handleAnalysis(dataUrl, '');

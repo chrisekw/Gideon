@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -56,39 +56,6 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Geolocation error:", error.message);
-          let description = "Could not get your location. Identification may be less accurate for landmarks.";
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              description = "Location access was denied. Please enable it in browser settings for better landmark identification.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              description = "Location information is unavailable. Please check your device's location settings.";
-              break;
-            case error.TIMEOUT:
-              description = "The request to get user location timed out.";
-              break;
-          }
-          toast({
-            variant: "destructive",
-            title: "Location Error",
-            description: description,
-          });
-        }
-      );
-    }
-  }, [toast]);
-
   const resetAiState = () => {
     setAiResponse(null);
     setProducts(null);
@@ -108,13 +75,7 @@ export default function HomePage() {
         const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
         setAiResponse(result.answer);
       } else {
-        setAnswerTitle('Identification');
-        setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
-        const result = await identifyObject({ 
-            photoDataUri: data,
-            ...(location && { latitude: location.latitude, longitude: location.longitude })
-        });
-        setAiResponse(result);
+        await handleIdentifyObject(data, true); // default action
       }
     } catch (error) {
       console.error('AI call failed:', error);
@@ -123,11 +84,11 @@ export default function HomePage() {
         title: 'An error occurred',
         description: 'Failed to get a response from the AI. Please try again.',
       });
-    } finally {
-      setIsAnalyzing(false);
+      setIsAnalyzing(false); // Ensure loader stops on error
       setCurrentAction(null);
-    }
-  }, [toast, location]);
+    } 
+    // `finally` block is removed here because `handleIdentifyObject` has its own `finally`
+  }, [toast]);
   
   const handleFindProducts = useCallback(async (data: string) => {
     setIsAnalyzing(true);
@@ -176,16 +137,58 @@ export default function HomePage() {
     }
   }, [toast]);
 
-  const handleIdentifyObject = useCallback(async (data: string) => {
-    setIsAnalyzing(true);
-    setCurrentAction('identify');
-    resetAiState();
+  const requestLocation = (): Promise<{ latitude: number, longitude: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Your browser does not support location services.' });
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setLocation(newLocation);
+          resolve(newLocation);
+        },
+        (error) => {
+          let description = "Could not get your location. Identification may be less accurate for landmarks.";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              description = "Location access was denied. Please enable it in browser settings for better landmark identification.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              description = "Location information is unavailable. Please check your device's location settings.";
+              break;
+            case error.TIMEOUT:
+              description = "The request to get user location timed out.";
+              break;
+          }
+          toast({ variant: "destructive", title: "Location Error", description });
+          resolve(null);
+        }
+      );
+    });
+  };
+
+  const handleIdentifyObject = useCallback(async (data: string, fromHandleAnalysis = false) => {
+    // If called from handleAnalysis, don't set loading state again.
+    if (!fromHandleAnalysis) {
+      setIsAnalyzing(true);
+      setCurrentAction('identify');
+      resetAiState();
+    }
     setAnswerTitle('Identification');
     setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
+
     try {
+      const loc = await requestLocation();
       const result = await identifyObject({ 
         photoDataUri: data,
-        ...(location && { latitude: location.latitude, longitude: location.longitude })
+        ...(loc && { latitude: loc.latitude, longitude: loc.longitude })
       });
       setAiResponse(result);
     } catch (error) {
@@ -195,7 +198,7 @@ export default function HomePage() {
       setIsAnalyzing(false);
       setCurrentAction(null);
     }
-  }, [toast, location]);
+  }, [toast]);
   
   const handleExtractText = useCallback(async (data: string) => {
     if (!question.trim()) {

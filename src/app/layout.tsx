@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Analytics } from '@vercel/analytics/react';
 import {
   Sidebar,
   SidebarContent,
@@ -148,6 +149,7 @@ export default function RootLayout({
         >
           {isCameraPage ? children : AppContent}
           <Toaster />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
