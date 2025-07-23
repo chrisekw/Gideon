@@ -27,12 +27,15 @@ export default function RootLayout({
   const isCameraPage = pathname === '/camera';
 
   const AppContent = (
-      <SidebarProvider>
-        <Sidebar>
+      <SidebarProvider defaultOpen={false}>
+        <Sidebar variant="floating" collapsible="icon">
           <SidebarHeader>
-            <div className="p-3 text-center">
-              <h1 className="text-xl font-bold tracking-tighter text-primary">GiDEON</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover</p>
+            <div className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tighter text-primary">GiDEON</h1>
+                <p className="text-xs text-muted-foreground mt-0.5 group-data-[state=collapsed]:hidden">Snap. Ask. Discover</p>
+              </div>
+              <SidebarTrigger className="hidden md:flex" />
             </div>
           </SidebarHeader>
           <SidebarContent>
