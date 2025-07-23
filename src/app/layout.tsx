@@ -14,15 +14,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
   SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton
 } from '@/components/ui/sidebar';
 import SidebarNav from '@/components/gideon/sidebar-nav';
 import React from 'react';
-import { Separator } from '@/components/ui/separator';
-import { Settings } from 'lucide-react';
-
 
 export default function RootLayout({
   children,
@@ -41,27 +35,11 @@ export default function RootLayout({
               <p className="text-xs text-muted-foreground mt-0.5">Snap. Ask. Discover</p>
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col">
-            <div className="flex-grow">
-              <SidebarNav />
-            </div>
+          <SidebarContent>
+            <SidebarNav />
           </SidebarContent>
           <SidebarFooter>
-              <Separator className="my-1 mx-2 w-auto" />
-              <SidebarMenu>
-                  <SidebarMenuItem>
-                      <SidebarMenuButton
-                          asChild
-                          isActive={pathname === '/settings'}
-                          tooltip="Settings"
-                      >
-                          <Link href="/settings">
-                              <Settings />
-                              <span>Settings</span>
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-              </SidebarMenu>
+             <SidebarNav isFooter />
           </SidebarFooter>
         </Sidebar>
         <div className="flex flex-1 flex-col">
