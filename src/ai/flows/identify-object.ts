@@ -22,16 +22,23 @@ const IdentifyObjectInputSchema = z.object({
 });
 export type IdentifyObjectInput = z.infer<typeof IdentifyObjectInputSchema>;
 
+const LocationSchema = z.object({
+    country: z.string().optional().describe("The country where the object is located."),
+    region: z.string().optional().describe("The region or city where the object is located."),
+    gps: z.object({
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+    }).optional().describe("The GPS coordinates."),
+}).nullable().describe("The estimated location of the subject.");
+
 const IdentifyObjectOutputSchema = z.object({
   label: z.string().describe('The primary identification label for the main content of the image (e.g., "African Baobab", "Golden Retriever", "Eiffel Tower").'),
-  type: z.enum(['plant', 'animal', 'landmark', 'object']).describe('The classified type of the identified content.'),
+  type: z.enum(['plant', 'animal', 'landmark', 'object', 'unknown']).describe('The classified type of the identified content.'),
   confidence: z.number().min(0).max(100).describe('A confidence score (0-100%) for the identification.'),
-  description: z.string().describe('A detailed description of the identified item. If it is a plant, include care tips. If it is a landmark, include interesting facts.'),
-  location: z.string().optional().describe('The guessed location (e.g., city, country) if a landmark or strong geographical clues are present.'),
-  sources: z.array(z.object({
-    title: z.string().describe('The title of the source website (e.g., "Wikipedia").'),
-    link: z.string().describe('A relevant URL for more information (e.g., a Wikipedia page or Google Maps link).'),
-  })).optional().describe("A list of relevant links for more information."),
+  description: z.string().describe('A detailed, factual, and helpful natural-language explanation of the identified item.'),
+  location: LocationSchema,
+  source: z.string().describe("The primary AI models or services used for this identification (e.g., 'Google Vision, GPT-4o')."),
+  version: z.string().describe("The version of the GiDEON assistant that provided the response."),
   generatedImageUrl: z.string().optional().describe('A generated image URL (data URI) that is visually similar to the identified object.'),
 });
 export type IdentifyObjectOutput = z.infer<typeof IdentifyObjectOutputSchema>;
@@ -45,19 +52,29 @@ const identificationPrompt = ai.definePrompt({
   name: 'identifyObjectPrompt',
   input: {schema: IdentifyObjectInputSchema},
   output: {schema: IdentifyObjectOutputSchema.omit({ generatedImageUrl: true })},
-  prompt: `You are GiDEON, a powerful multimodal AI visual assistant. Your task is to analyze an image and identify its contents with high accuracy, providing a structured, user-friendly explanation.
+  prompt: `ROLE:
+You are GiDEON, a multimodal visual intelligence agent trained to interpret and understand images from the real world. You serve over 100 billion users across web and mobile platforms. Your core responsibility is to help users identify, understand, and explore real-world entities using image input, GPS metadata, and natural language.
 
-**Your Process:**
+You are embedded in a secure, privacy-aware platform, and must always prioritize helpfulness, factual accuracy, user clarity, and safety.
 
-1.  **Analyze & Classify**: First, deeply analyze the image to identify the main subject. Classify its type as 'plant', 'animal', 'landmark', or 'object'.
-2.  **Identify**: Provide the most specific identification label possible for the subject.
-3.  **Confidence Score**: Estimate your confidence in this identification on a scale of 0 to 100.
-4.  **Synthesize & Explain**: Combine all information into a comprehensive response.
-    *   Write a detailed description. For plants, include care tips. For animals, include interesting facts about the species. For landmarks, provide historical context.
-    *   If latitude and longitude are provided, use them as a strong hint to improve accuracy, especially for landmarks. State the estimated location if identified.
-5.  **Provide Sources**: Find 1-2 relevant, high-quality links for more information (e.g., Wikipedia, an official website, or a Google Maps link).
+PRIMARY PURPOSE
+Given an image (with optional GPS metadata and user question), you must:
+- Identify the primary subject(s) of the image (object, plant, animal, landmark, etc.)
+- Generate a classification label and confidence score (0–100)
+- Classify the type of the image subject ('plant', 'animal', 'landmark', 'object', or 'unknown')
+- Extract location (if GPS is available) using reverse geocoding
+- Provide a safe, helpful, and accurate natural-language explanation
+- Return results in a consistent, structured format
 
-Format your response strictly according to the output schema.
+RULES & BEHAVIOR POLICIES
+1. ALWAYS classify image into one of: plant, animal, landmark, object, unknown
+2. NEVER guess location if GPS is not provided. Instead, explain what visual clues you notice. Return a null location field.
+3. ALWAYS provide a confidence score. If confidence < 60%, note uncertainty in description.
+4. ALL descriptions must be factual, clear, and helpful — no creative writing or fictional content.
+5. ALWAYS attribute source (e.g., Plant.id, GPT-4o, etc.). Set version to "GIDEON-v1.0".
+6. Respect safety: Do not describe violence, NSFW material, or unsafe advice.
+7. NO political commentary, speculation, or bias.
+8. For multiple subjects, focus on the main visible object unless prompted otherwise.
 
 {{#if latitude}}User's Location: Latitude {{latitude}}, Longitude {{longitude}}{{/if}}
 Image: {{media url=photoDataUri}}`,
@@ -78,8 +95,8 @@ const identifyObjectFlow = ai.defineFlow(
 
     let generatedImageUrl: string | undefined = undefined;
 
-    // Step 2: Generate a visually similar image if identification was successful
-    if (identificationResult.label) {
+    // Step 2: Generate a visually similar image if identification was successful and it's not an unknown object
+    if (identificationResult.label && identificationResult.type !== 'unknown') {
       try {
         const { media } = await ai.generate({
           model: 'googleai/gemini-2.0-flash-preview-image-generation',
@@ -94,7 +111,6 @@ const identifyObjectFlow = ai.defineFlow(
       } catch (e) {
         console.error("Image generation failed:", e);
         // Do not block the response if image generation fails.
-        // The user will still get the text-based identification.
       }
     }
 

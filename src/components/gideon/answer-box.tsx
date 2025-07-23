@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Volume2, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Sparkles, Volume2, Loader2, ArrowLeft, ArrowRight, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -147,6 +147,10 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   const identificationResult = isIdentifyObjectOutput(response) ? response : null;
   const simpleResponse = typeof response === 'string' ? response : null;
 
+  const locationString = identificationResult?.location 
+    ? [identificationResult.location.region, identificationResult.location.country].filter(Boolean).join(', ')
+    : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -169,7 +173,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
           </div>
           {isShopping && simpleResponse && <p className="text-sm text-muted-foreground pt-1">{simpleResponse}</p>}
         </CardHeader>
-        <CardContent className="overflow-y-auto max-h-[40vh]">
+        <CardContent className="overflow-y-auto max-h-[40vh] space-y-4">
           {isHomework ? (
             <div className="space-y-4">
               {preamble && <p className="text-sm text-muted-foreground italic">"{preamble}"</p>}
@@ -192,7 +196,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
           ) : (
             <>
               {identificationResult?.generatedImageUrl && (
-                <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden border">
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden border">
                   <Image src={identificationResult.generatedImageUrl} alt="AI generated visual aid" fill className="object-contain" />
                 </div>
               )}
@@ -202,6 +206,14 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                     <h3 className="text-2xl font-bold text-primary">{identificationResult.label}</h3>
                     <Badge variant="secondary" className="capitalize">{identificationResult.type}</Badge>
                   </div>
+
+                  {locationString && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>{locationString}</span>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                      <div className="flex justify-between items-center text-sm">
                        <span className="font-medium text-muted-foreground">Confidence</span>
@@ -214,6 +226,11 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                           {identificationResult.description}
                       </div>
                   )}
+                  {identificationResult.source && (
+                    <div className="text-xs text-muted-foreground/80 pt-2 border-t mt-4">
+                        Source: {identificationResult.source} | Version: {identificationResult.version}
+                    </div>
+                  )}
                 </div>
               )}
               {simpleResponse && !isShopping && (
@@ -222,7 +239,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                   </div>
               )}
               {products && products.length > 0 && (
-                  <div className={cn("space-y-3", (simpleResponse || identificationResult) && "mt-4")}>
+                  <div className="space-y-3">
                       {products.map((product, index) => (
                         <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
                             <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border">
@@ -230,6 +247,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                             </div>
                             <div className="flex-grow">
                                 <p className="font-semibold text-primary line-clamp-2">{product.name}</p>
+
                                 <p className="text-sm text-muted-foreground">{product.brand}</p>
                             </div>
                             <p className="font-bold text-lg text-right whitespace-nowrap self-start">{product.price}</p>
@@ -241,18 +259,6 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
                 <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                   {simpleResponse}
                 </div>
-              )}
-              {identificationResult?.sources && identificationResult.sources.length > 0 && (
-                  <div className={cn("space-y-3", (simpleResponse || identificationResult) && "mt-4")}>
-                      <h4 className="font-semibold text-base">Sources</h4>
-                      <div className="space-y-2">
-                          {identificationResult.sources.map((source, index) => (
-                               <a key={index} href={source.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm">
-                                   <p className="font-medium text-primary hover:underline">{source.title}</p>
-                               </a>
-                          ))}
-                      </div>
-                  </div>
               )}
             </>
           )}
