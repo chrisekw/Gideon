@@ -23,7 +23,9 @@ const IdentifyObjectInputSchema = z.object({
 export type IdentifyObjectInput = z.infer<typeof IdentifyObjectInputSchema>;
 
 const IdentifyObjectOutputSchema = z.object({
-  identification: z.string().describe('The primary identification of the main object, plant, animal, or landmark in the image.'),
+  label: z.string().describe('The primary identification label for the main content of the image (e.g., "African Baobab", "Golden Retriever", "Eiffel Tower").'),
+  type: z.enum(['plant', 'animal', 'landmark', 'object']).describe('The classified type of the identified content.'),
+  confidence: z.number().min(0).max(100).describe('A confidence score (0-100%) for the identification.'),
   description: z.string().describe('A detailed description of the identified item. If it is a plant, include care tips. If it is a landmark, include interesting facts.'),
   location: z.string().optional().describe('The guessed location (e.g., city, country) if a landmark or strong geographical clues are present.'),
   sources: z.array(z.object({
@@ -43,20 +45,17 @@ const identificationPrompt = ai.definePrompt({
   name: 'identifyObjectPrompt',
   input: {schema: IdentifyObjectInputSchema},
   output: {schema: IdentifyObjectOutputSchema.omit({ generatedImageUrl: true })},
-  prompt: `You are a world-class AI identification expert. Your task is to analyze an image and identify its contents by following a structured process.
+  prompt: `You are GiDEON, a powerful multimodal AI visual assistant. Your task is to analyze an image and identify its contents with high accuracy, providing a structured, user-friendly explanation.
 
 **Your Process:**
 
-1.  **Categorize**: First, determine the primary category of the image subject: Is it a plant, animal, landmark, or a general object?
-2.  **Analyze**: Based on the category, perform a specialized analysis.
-    *   **If it's a plant or animal**: Use your knowledge base to find its species name.
-    *   **If it's a landmark**: Identify its name. If latitude and longitude are provided, use them as a strong hint to improve the accuracy of your identification.
-    *   **If it's a general object**: Identify the object and its purpose.
-3.  **Synthesize & Explain**: Combine all the information you've gathered into a comprehensive response.
-    *   Provide the primary identification.
-    *   Write a detailed description. If it's a plant, include care tips. If it's a landmark, include interesting facts.
-    *   If you identified a location, state it clearly. Use the provided coordinates to refine the location if available.
-4.  **Provide Sources**: Find 1-2 relevant, high-quality links for more information, such as a Wikipedia page, an official website, or a Google Maps link.
+1.  **Analyze & Classify**: First, deeply analyze the image to identify the main subject. Classify its type as 'plant', 'animal', 'landmark', or 'object'.
+2.  **Identify**: Provide the most specific identification label possible for the subject.
+3.  **Confidence Score**: Estimate your confidence in this identification on a scale of 0 to 100.
+4.  **Synthesize & Explain**: Combine all information into a comprehensive response.
+    *   Write a detailed description. For plants, include care tips. For animals, include interesting facts about the species. For landmarks, provide historical context.
+    *   If latitude and longitude are provided, use them as a strong hint to improve accuracy, especially for landmarks. State the estimated location if identified.
+5.  **Provide Sources**: Find 1-2 relevant, high-quality links for more information (e.g., Wikipedia, an official website, or a Google Maps link).
 
 Format your response strictly according to the output schema.
 
@@ -80,11 +79,11 @@ const identifyObjectFlow = ai.defineFlow(
     let generatedImageUrl: string | undefined = undefined;
 
     // Step 2: Generate a visually similar image if identification was successful
-    if (identificationResult.identification) {
+    if (identificationResult.label) {
       try {
         const { media } = await ai.generate({
           model: 'googleai/gemini-2.0-flash-preview-image-generation',
-          prompt: `A high-quality, clear, photorealistic image of a single "${identificationResult.identification}". The object should be centered against a plain, neutral background.`,
+          prompt: `A high-quality, clear, photorealistic image of a single "${identificationResult.label}". The object should be centered against a plain, neutral background.`,
           config: {
             responseModalities: ['TEXT', 'IMAGE'],
           },

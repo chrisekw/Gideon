@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeImage } from '@/ai/flows/analyze-image';
 import { findProducts } from '@/ai/flows/find-products';
 import { solveHomework } from '@/ai/flows/solve-homework';
-import { identifyObject } from '@/ai/flows/identify-object';
+import { identifyObject, IdentifyObjectOutput } from '@/ai/flows/identify-object';
 import { extractText } from '@/ai/flows/extract-text';
 import { motion } from 'framer-motion';
 import {
@@ -34,11 +34,6 @@ type Product = {
   imageUrl: string;
 };
 
-type Source = {
-  title: string;
-  link: string;
-};
-
 type HomeworkSolution = {
   question: string;
   solution: string;
@@ -49,10 +44,8 @@ export default function HomePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
-  const [aiResponse, setAiResponse] = useState<string>('');
+  const [aiResponse, setAiResponse] = useState<IdentifyObjectOutput | string | null>(null);
   const [products, setProducts] = useState<Product[] | null>(null);
-  const [sources, setSources] = useState<Source[] | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [homeworkSolutions, setHomeworkSolutions] = useState<HomeworkSolution[] | null>(null);
   const [preamble, setPreamble] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -97,10 +90,8 @@ export default function HomePage() {
   }, [toast]);
 
   const resetAiState = () => {
-    setAiResponse('');
+    setAiResponse(null);
     setProducts(null);
-    setSources(null);
-    setImageUrl(null);
     setHomeworkSolutions(null);
     setPreamble('');
   }
@@ -109,25 +100,21 @@ export default function HomePage() {
     setIsAnalyzing(true);
     setCurrentAction('ask');
     resetAiState();
-    setAnswerTitle('AI Analysis');
-    setAnswerIcon(<Sparkles className="h-5 w-5 text-primary" />);
+    
     try {
       if (userQuestion.trim()) {
+        setAnswerTitle('AI Analysis');
+        setAnswerIcon(<Sparkles className="h-5 w-5 text-primary" />);
         const result = await analyzeImage({ photoDataUri: data, question: userQuestion });
         setAiResponse(result.answer);
       } else {
-        // Default action is now to identify the object
+        setAnswerTitle('Identification');
+        setAnswerIcon(<Leaf className="h-5 w-5 text-primary" />);
         const result = await identifyObject({ 
             photoDataUri: data,
             ...(location && { latitude: location.latitude, longitude: location.longitude })
         });
-        let responseText = `${result.identification}\n\n${result.description}`;
-        if (result.location) {
-          responseText += `\n\n**Location:** ${result.location}`;
-        }
-        setAiResponse(responseText);
-        setSources(result.sources || null);
-        setImageUrl(result.generatedImageUrl || null);
+        setAiResponse(result);
       }
     } catch (error) {
       console.error('AI call failed:', error);
@@ -200,13 +187,7 @@ export default function HomePage() {
         photoDataUri: data,
         ...(location && { latitude: location.latitude, longitude: location.longitude })
       });
-      let responseText = `${result.identification}\n\n${result.description}`;
-      if (result.location) {
-        responseText += `\n\n**Location:** ${result.location}`;
-      }
-      setAiResponse(responseText);
-      setSources(result.sources || null);
-      setImageUrl(result.generatedImageUrl || null);
+      setAiResponse(result);
     } catch (error) {
       console.error('AI call failed:', error);
       toast({ variant: 'destructive', title: 'An error occurred', description: 'Failed to identify. Please try again.'});
@@ -339,9 +320,7 @@ export default function HomePage() {
             title={answerTitle} 
             icon={answerIcon} 
             response={aiResponse} 
-            products={products} 
-            sources={sources} 
-            imageUrl={imageUrl}
+            products={products}
             homeworkSolutions={homeworkSolutions}
             preamble={preamble}
           />

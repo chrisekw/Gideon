@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import HomeworkSolution from "./homework-solution";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { IdentifyObjectOutput } from "@/ai/flows/identify-object";
 
 type Product = {
   name: string;
@@ -18,11 +21,6 @@ type Product = {
   price: string;
   link: string;
   imageUrl: string;
-};
-
-type Source = {
-  title: string;
-  link: string;
 };
 
 type HomeworkSolutionType = {
@@ -35,15 +33,17 @@ type AnswerBoxProps = {
   isLoading: boolean;
   title: string;
   icon: React.ReactNode;
-  response: string;
+  response: IdentifyObjectOutput | string | null;
   products?: Product[] | null;
-  sources?: Source[] | null;
-  imageUrl?: string | null;
   homeworkSolutions?: HomeworkSolutionType[] | null;
   preamble?: string | null;
 };
 
-export default function AnswerBox({ isLoading, title, icon, response, products, sources, imageUrl, homeworkSolutions, preamble }: AnswerBoxProps) {
+function isIdentifyObjectOutput(response: any): response is IdentifyObjectOutput {
+  return response && typeof response === 'object' && 'label' in response && 'description' in response;
+}
+
+export default function AnswerBox({ isLoading, title, icon, response, products, homeworkSolutions, preamble }: AnswerBoxProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
@@ -55,9 +55,13 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   }, [homeworkSolutions]);
 
   const handleSpeak = async () => {
-    let textToSpeak = response;
-    
-    if (homeworkSolutions && homeworkSolutions.length > 0) {
+    let textToSpeak = '';
+
+    if (isIdentifyObjectOutput(response)) {
+      textToSpeak = `${response.label}. ${response.description}`;
+    } else if (typeof response === 'string') {
+      textToSpeak = response;
+    } else if (homeworkSolutions && homeworkSolutions.length > 0) {
       const currentSolution = homeworkSolutions[currentSolutionIndex];
       textToSpeak = `${preamble || ''}\n\nQuestion: ${currentSolution.question}\n\n${currentSolution.solution}`;
     }
@@ -90,7 +94,7 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
     setAudioDataUri(null);
   }, [response, currentSolutionIndex, homeworkSolutions]);
   
-  const showLoader = isLoading && !response && !imageUrl && (!products || products.length === 0) && (!sources || sources.length === 0) && (!homeworkSolutions || homeworkSolutions.length === 0);
+  const showLoader = isLoading && !response && (!products || products.length === 0) && (!homeworkSolutions || homeworkSolutions.length === 0);
 
   if (showLoader) {
      return (
@@ -134,12 +138,15 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
   
   const isHomework = title === 'Homework Solution' && homeworkSolutions && homeworkSolutions.length > 0;
   const isShopping = title === 'Products Found' && products;
-  const hasContent = response || imageUrl || (products && products.length > 0) || (sources && sources.length > 0) || isHomework;
+  const hasContent = response || (products && products.length > 0) || isHomework;
   
   if (!hasContent) {
     return null;
   }
   
+  const identificationResult = isIdentifyObjectOutput(response) ? response : null;
+  const simpleResponse = typeof response === 'string' ? response : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -153,14 +160,14 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
               {icon}
               {title}
               </CardTitle>
-              {(response || isHomework) && !isLoading && !isShopping && (
+              {(simpleResponse || identificationResult || isHomework) && !isLoading && !isShopping && (
                   <Button onClick={handleSpeak} variant="ghost" size="icon" disabled={isSpeaking} className="shrink-0">
                       {isSpeaking ? <Loader2 className="h-5 w-5 animate-spin" /> : <Volume2 className="h-5 w-5" />}
                       <span className="sr-only">Speak</span>
                   </Button>
               )}
           </div>
-          {isShopping && response && <p className="text-sm text-muted-foreground pt-1">{response}</p>}
+          {isShopping && simpleResponse && <p className="text-sm text-muted-foreground pt-1">{simpleResponse}</p>}
         </CardHeader>
         <CardContent className="overflow-y-auto max-h-[40vh]">
           {isHomework ? (
@@ -184,18 +191,38 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
             </div>
           ) : (
             <>
-              {imageUrl && (
+              {identificationResult?.generatedImageUrl && (
                 <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden border">
-                  <Image src={imageUrl} alt="AI generated visual aid" fill className="object-contain" />
+                  <Image src={identificationResult.generatedImageUrl} alt="AI generated visual aid" fill className="object-contain" />
                 </div>
               )}
-              {response && !isShopping && (
+              {identificationResult && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+                    <h3 className="text-2xl font-bold text-primary">{identificationResult.label}</h3>
+                    <Badge variant="secondary" className="capitalize">{identificationResult.type}</Badge>
+                  </div>
+                  <div className="space-y-2">
+                     <div className="flex justify-between items-center text-sm">
+                       <span className="font-medium text-muted-foreground">Confidence</span>
+                       <span>{identificationResult.confidence}%</span>
+                     </div>
+                     <Progress value={identificationResult.confidence} aria-label={`${identificationResult.confidence}% confidence`} />
+                  </div>
+                  {identificationResult.description && (
+                      <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                          {identificationResult.description}
+                      </div>
+                  )}
+                </div>
+              )}
+              {simpleResponse && !isShopping && (
                   <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                      {response}
+                      {simpleResponse}
                   </div>
               )}
               {products && products.length > 0 && (
-                  <div className={cn("space-y-3", (response || imageUrl) && "mt-4")}>
+                  <div className={cn("space-y-3", (simpleResponse || identificationResult) && "mt-4")}>
                       {products.map((product, index) => (
                         <a key={index} href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
                             <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border">
@@ -212,14 +239,14 @@ export default function AnswerBox({ isLoading, title, icon, response, products, 
               )}
                {products && products.length === 0 && (
                 <div className="max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                  {response}
+                  {simpleResponse}
                 </div>
               )}
-              {sources && sources.length > 0 && (
-                  <div className={cn("space-y-3", (response || imageUrl || (products && products.length > 0)) && "mt-4")}>
+              {identificationResult?.sources && identificationResult.sources.length > 0 && (
+                  <div className={cn("space-y-3", (simpleResponse || identificationResult) && "mt-4")}>
                       <h4 className="font-semibold text-base">Sources</h4>
                       <div className="space-y-2">
-                          {sources.map((source, index) => (
+                          {identificationResult.sources.map((source, index) => (
                                <a key={index} href={source.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm">
                                    <p className="font-medium text-primary hover:underline">{source.title}</p>
                                </a>
